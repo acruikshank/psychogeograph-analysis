@@ -1,0 +1,147 @@
+body {
+  background-color: rgba(45, 48, 54, 1);
+  margin: 0;
+  font-family: Andale Mono, monospace;
+  font-size: 10pt;
+  overflow: hidden;
+}
+
+video {
+  height: 40%;
+}
+
+#marker {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: 50px;
+  background-color: rgba(0,128,255,.2);
+  margin-left: -25px;
+  z-index: 1;
+}
+
+#marker:after {
+  content: '';
+  border: 1px solid rgb(0,128,255);
+  position: absolute;
+  height: 100%;
+  width: 0;
+  top: 0;
+  left: 50%;
+}
+
+#graphs {
+  position: relative;
+}
+
+#controls {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 50vh;
+  margin: 1em;
+}
+
+#controls label {
+  color: #9e9e9e;
+  font-size: 1em;
+  display: block;
+  padding: .2em;
+}
+
+#controls input {
+  font-family: Andale Mono, monospace;
+  color: #fff;
+  border: none;
+  background: none;
+  font-size: 1.5em;
+  margin-bottom: .8em;
+  width: 100%;
+  padding: .2em;
+}
+
+canvas {
+  width: 100%;
+  height: 15%;
+  background-color: #24252a;
+  /*background: rgba(44, 47, 52, 1);*/
+}
+
+#editor {
+  position: absolute;
+  left:0;
+  width: 100%;
+  bottom:-40%;
+  height: 40%;
+  opacity: .95;
+  transition: bottom .2s ease;
+}
+
+button {
+  font-family: Andale Mono, monospace;
+  margin: 2em auto;
+  display: block;
+  background: none;
+  border: none;
+  color: #eee;
+  font-size: 1.2em;
+  padding: .4em 4em;
+  transition: background-color .1s linear;
+}
+
+button:hover {
+  color: #fff;
+  background: rgba(255,255,255,.2);
+  cursor: pointer;
+}
+
+.editing #editor {
+  bottom: 0;
+}
+
+#signals {
+  height: 60%;
+  width: 100%;
+  overflow-y: auto;
+  padding-top: 1em;
+}
+
+.signal {
+  margin-bottom: 1em;
+  position: relative;
+  overflow: hidden;
+}
+.signal:last-of-type {
+  margin-bottom: 0;
+}
+
+.signal-controls {
+  position: absolute;
+  height: 100%;
+  top: 0;
+  right: 0;
+  opacity: 0;
+  transition: opacity .2s linear;
+  text-align: right;
+}
+
+.signal:hover .signal-controls {
+  opacity: 1;
+}
+
+.signal-controls button {
+  display: inline-block;
+  padding: .4em 2em;
+  margin-right: 1em;
+  background-color: rgba(60,60,60,.6);
+}
+.signal-controls button:hover {
+  background-color: rgba(200,200,200,.6);
+}
+
+.signal-controls .color {
+    border: none;
+    width: 2.2em;
+    height: 2.2em;
+    margin-right: 2em;
+}

@@ -1,0 +1,21 @@
+{
+  "name": "analysis",
+  "version": "1.0.0",
+  "description": "Anaylzer for mixed EEG and video data",
+  "main": "index.js",
+  "scripts": {
+    "start": "electron .",
+    "pack": "build --dir",
+    "dist": "build"
+  },
+  "author": "Alex Cruikshank",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^1.4.1",
+    "electron-builder": "^8.6.0"
+  },
+  "build": {
+    "appId": "sivoh.PsygoAnalysis",
+    "mac": {}
+  }
+}

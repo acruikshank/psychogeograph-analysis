@@ -1,0 +1,259 @@
+<html>
+  <head>
+    <title>Psychogeography Analysis</title>
+    <link rel="stylesheet" href="analysis.css" media="screen">
+    <script src="recorded-data.js"></script>
+    <script src="signal.js"></script>
+    <script src="ace-1.2.5/ace.js"></script>
+  </head>
+  <body>
+    <video src="" id="video" controls="true"></video>
+    <div id="controls">
+      <label for="start-range">start range</label>
+      <input id="start-range"/>
+      <label for="end-range">end range</label>
+      <input id="end-range"/>
+    </div>
+    <div id="signals">
+      <div id="graphs">
+        <div id="marker"></div>
+      </div>
+      <button id="add-signal">add signal</button>
+    </div>
+    <div id="editor"></div>
+  </body>
+  <script>
+  /*
+  TODO:
+  * New workspace
+  * Load toolset
+  * Save toolset
+  * Figure out way to populate video and csv from dev
+  * extract editor code
+  * add cancel and save editor controls. and errors.
+  * Automatically set interval to length of video
+  * Allow user to set set time at current time in video
+  */
+    let ipcRenderer;
+    let videoPath, dataPath;
+    let data = RecordedData(dataLoaded);
+    let colors = initColors();
+    let startRange, endRange;
+    let signals = [];
+    let currentSignal;
+    let editor;
+    initIPC();
+    initEditor();
+    initVideo();
+    initData();
+    el('video').addEventListener('timeupdate', timeupdate);
+    el('start-range').addEventListener('blur', updateStartRange);
+    el('end-range').addEventListener('blur', updateEndRange);
+    el('add-signal').addEventListener('click', function() { editSignal() });
+
+    function initIPC() {
+      try {
+        ipcRenderer = require('electron').ipcRenderer
+        ipcRenderer.on('workspace', (e,m) => restoreSaved(m))
+      } catch (e) { }
+    }
+
+    function editSignal(signal) {
+      currentSignal = signal;
+      editor.setValue(signal ? signal.script : 'return theta_af4');
+      document.body.setAttribute('class', 'editing');
+      editor.focus();
+    }
+
+    function removeSignal(signal) {
+      signal.remove();
+      signals = signals.filter(function(s) { return s !== signal });
+      saveState()
+    }
+
+    function initColors() {
+      for (var i=0, colors = []; i<10; i++) colors.push(hsvToRGBString(i/10, 1, 1));
+      return colors;
+    }
+
+    function updateStartRange() {
+      var next = new Date(el('start-range').value);
+      if (isNaN(next.getTime()))
+        return setTime('start-range', next.getTime())
+
+      startRange = next.getTime();
+      updateSignals();
+    }
+
+    function updateEndRange() {
+      var next = new Date(el('end-range').value);
+      if (isNaN(next.getTime()))
+        return setTime('end-range', next.getTime())
+
+      endRange = next.getTime();
+      updateSignals();
+    }
+
+    function updateSignals() {
+      signals.forEach(function(signal) { signal.render(startRange, endRange); })
+      saveState();
+    }
+
+    function setTime(elId, time) {
+      el(elId).value = new Date(time).toLocaleString();
+    }
+
+    function dataLoaded() {
+      if (!startRange)
+        setTime('start-range', 1000 * data.startTime);
+
+      if (!endRange)
+        setTime('end-range', 1000 * data.endTime);
+      refreshSignals();
+      saveState()
+    }
+
+    function initEditor() {
+      editor = ace.edit("editor");
+      editor.setTheme("ace/theme/tomorrow_night");
+      editor.getSession().setMode("ace/mode/javascript");
+      editor.setShowPrintMargin(false);
+      editor.getSession().setUseSoftTabs(true);
+      editor.setFontSize(12);
+      editor.commands.addCommand({
+          name: 'runScript',
+          bindKey: {win: 'Ctrl-Alt-Enter',  mac: 'Ctrl-Alt-Enter'},
+          exec: updateScript
+      });
+      editor.renderer.setPadding(15);
+      editor.renderer.setScrollMargin(15);
+      editor.clearSelection();
+    }
+
+    function initVideo() {
+      const video = el('video')
+      video.ondragover = () => { return false; }
+      video.ondragleave = video.ondragend = () => { return false; }
+      video.ondrop = (e) => {
+        e.preventDefault()
+        setVideo(e.dataTransfer.files[0].path)
+        saveState()
+        return false
+      }
+    }
+
+    function setVideo(path) {
+      videoPath = path
+      el('video').src = videoPath;
+    }
+
+    function setData(path) {
+      dataPath = path
+      data.fetchData(dataPath);
+    }
+
+    function initData() {
+      const controls = el('controls')
+      controls.ondragover = () => { return false; }
+      controls.ondragleave = video.ondragend = () => { return false; }
+      controls.ondrop = (e) => {
+        e.preventDefault()
+        setData(e.dataTransfer.files[0].path);
+        return false
+      }
+    }
+
+    function updateScript() {
+      if (!currentSignal)
+        currentSignal = addSignal();
+      currentSignal.generateScript(editor.getValue());
+      currentSignal.render(startRange, endRange);
+      document.body.setAttribute('class','');
+      saveState();
+    }
+
+    function addSignal(color) {
+      if (!color) color = colors[signals.length%colors.length];
+      var signal = Signal(color, el('graphs'));
+      signal.addEventListener('edit', function() { editSignal(signal) })
+      signal.addEventListener('remove', function() { removeSignal(signal); })
+      signals.push(signal);
+      return signal;
+    }
+
+    function timeupdate(e) {
+      var canvas = el('c');
+      // TODO: need new number for calibration
+      var currentTime = startRange + el('video').currentTime*1000;
+      var timeFraction = prel(startRange,endRange, currentTime);
+      el('marker').style.left = lerp(0,el('graphs').offsetWidth,timeFraction);
+    }
+
+    function clearSignals() {
+      signals = [];
+      document.querySelectorAll('.signal').forEach(function(s) {
+        s.remove();
+      })
+    }
+
+    function refreshSignals() {
+      signals.forEach((s) => s.render(startRange, endRange));
+    }
+
+    function saveState() {
+      var workspace = JSON.stringify({
+        videoPath: videoPath,
+        dataPath: dataPath,
+        startRange: new Date(startRange).toISOString(),
+        endRange: new Date(endRange).toISOString(),
+        signals: signals.map(function(s) { return s.serialize() })
+      });
+      if (ipcRenderer)
+        ipcRenderer.send('workspace', workspace);
+    }
+
+    function restoreSaved(saved) {
+      setVideo(saved.videoPath);
+      setData(saved.dataPath);
+
+      startRange = new Date(saved.startRange).getTime();
+      setTime('start-range', startRange);
+      endRange = new Date(saved.endRange).getTime();
+      setTime('end-range', endRange);
+
+      clearSignals();
+      if (!saved.signals) return;
+
+      signals = saved.signals.map(function(s) {
+        var signal = addSignal(s.color);
+        signal.generateScript(s.script);
+        signal.render(startRange, endRange);
+        return signal;
+      })
+    }
+
+    function hsvToRGBString(h, s, v) {
+        var i=(h * 6)|0, f=h * 6 - i, p=v * (1 - s), q=v * (1 - f * s), t=v * (1 - (1 - f) * s);
+        switch (i % 6) {
+          case 0: return rgbString(v,t,p);
+          case 1: return rgbString(q,v,p);
+          case 2: return rgbString(p,v,t);
+          case 3: return rgbString(p,q,v);
+          case 4: return rgbString(t,p,v);
+          default: return rgbString(v,p,q);
+        }
+    }
+
+    function rgbString(r, g, b) {
+      return '#' + hex((255*r)|0) + hex((255*g)|0) + hex((255*b)|0);
+    }
+    function hex(d) {
+      return (d < 16 ? '0' : '') + d.toString(16);
+    }
+
+    function el(id) { return document.getElementById(id); }
+    function project(a,b,c,d,x) { return lerp(c,d,prel(a,b,x)) }
+    function lerp(a,b,x) { return a + x*(b-a); }
+    function prel(a,b,x) { return (x-a)/(b-a); }
+  </script>
+</html>
