@@ -49,8 +49,8 @@ function Signal(color, parent) {
     out.script = s;
   }
 
-  out.render = function(startRange, endRange) {
-    out.updateRanges(startRange, endRange);
+  out.render = function(data, startRange, endRange) {
+    out.updateRanges(data, startRange, endRange);
     ctx.clearRect(0,0,cw,ch);
     var start = startRange / 1000;
     var end = endRange / 1000;
@@ -66,7 +66,7 @@ function Signal(color, parent) {
     }
   }
 
-  out.updateRanges = function(startRange, endRange) {
+  out.updateRanges = function(data, startRange, endRange) {
     var start = startRange / 1000;
     var end = endRange / 1000;
     maxRange = null;
@@ -112,6 +112,14 @@ function Signal(color, parent) {
   }
 
   return out;
+}
+
+Signal.testScript = function(script, data) {
+  var args = ['af3','af4','t7','t8','pz'].reduce(function(args,location) {
+    return args.concat(['theta','alpha','low_beta','high_beta','gamma'].map(function(name) { return name+'_'+location }))
+  }, [])
+  eval('function _generated_(time,'+args.join(',')+') {'+script+'}')
+  _generated_.apply(0, new Float64Array(26));
 }
 
 function debounce(f, delay) {

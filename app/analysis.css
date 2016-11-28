@@ -112,14 +112,49 @@ canvas {
   background-color: #24252a;
 }
 
-#editor {
+#edit-pane {
   position: absolute;
   left:0;
   width: 100%;
-  bottom:-40%;
-  height: 40%;
+  bottom:-340px;
+  height: 340px;
   opacity: .95;
   transition: bottom .2s ease;
+  z-index: 2;
+}
+
+#edit-control {
+  background-color: rgba(144, 143, 135, 0.95);
+  border-top: 1px solid;
+  border-bottom: 1px solid;
+  border-color: rgba(255,255,255,.6);
+  height: 40px;
+  text-align: right;
+}
+
+#script-error {
+  position: absolute;
+  top: 0;
+  left: 0;
+  line-height: 40px;
+  padding-left: 2em;
+  color: #b32f2f;
+}
+
+#edit-control button {
+  display: inline-block;
+  height: 40px;
+  margin: 0 6px;
+  padding: .4em 2em;
+}
+
+.editing #edit-pane {
+  bottom: 0;
+}
+
+#editor {
+  width: 100%;
+  height: 300px;
 }
 
 button {
@@ -138,10 +173,6 @@ button:hover {
   color: #fff;
   background: rgba(255,255,255,.2);
   cursor: pointer;
-}
-
-.editing #editor {
-  bottom: 0;
 }
 
 #signals {

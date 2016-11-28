@@ -38,15 +38,21 @@ return theta_af3</script>
       </div>
       <button id="add-signal">add signal</button>
     </div>
-    <div id="editor"></div>
+    <div id="edit-pane">
+      <div id="edit-control">
+        <span id="script-error"></span>
+        <button class="save">save</button>
+        <button class="cancel">cancel</button>
+      </div>
+      <div id="editor"></div>
+    </div>
   </body>
   <script>
   /*
   TODO:
   * Editor window with save, cancel, error and color change buttons.
-  * Drag targets for video and csv window.
-  * Responsiveness
   * More information for csv
+  * context and signal processing.
   * Automatically set interval to length of video
   * Allow user to set set time at current time in video
   */
@@ -108,7 +114,7 @@ return theta_af3</script>
     }
 
     function updateSignals() {
-      signals.forEach(function(signal) { signal.render(startRange, endRange); })
+      signals.forEach(function(signal) { signal.render(data, startRange, endRange); })
       saveState();
     }
 
@@ -149,6 +155,29 @@ return theta_af3</script>
       editor.renderer.setPadding(15);
       editor.renderer.setScrollMargin(15);
       editor.clearSelection();
+      el('script-error').innerHTML = ''
+
+      document.querySelector('#edit-control .save').addEventListener('click', updateScript);
+      document.querySelector('#edit-control .cancel').addEventListener('click', closeEditor);
+    }
+
+    function updateScript() {
+      try {
+        Signal.testScript(editor.getValue());
+      } catch (e) {
+        el('script-error').innerHTML = e.toString()
+        return;
+      }
+      if (!currentSignal)
+        currentSignal = addSignal();
+      currentSignal.generateScript(editor.getValue());
+      currentSignal.render(data, startRange, endRange);
+      closeEditor();
+      saveState();
+    }
+
+    function closeEditor() {
+      document.body.setAttribute('class','');
     }
 
     function initDragging() {
@@ -184,15 +213,6 @@ return theta_af3</script>
       el('data-container').setAttribute('class', dataPath ? '' : 'empty');
     }
 
-    function updateScript() {
-      if (!currentSignal)
-        currentSignal = addSignal();
-      currentSignal.generateScript(editor.getValue());
-      currentSignal.render(startRange, endRange);
-      document.body.setAttribute('class','');
-      saveState();
-    }
-
     function addSignal(color) {
       if (!color) color = colors[signals.length%colors.length];
       var signal = Signal(color, el('graphs'));
@@ -218,7 +238,7 @@ return theta_af3</script>
     }
 
     function refreshSignals() {
-      signals.forEach((s) => s.render(startRange, endRange));
+      signals.forEach((s) => s.render(data, startRange, endRange));
     }
 
     function saveState() {
@@ -251,7 +271,7 @@ return theta_af3</script>
       signals = toolset.map(function(s) {
         var signal = addSignal(s.color);
         signal.generateScript(s.script);
-        signal.render(startRange, endRange);
+        signal.render(data, startRange, endRange);
         return signal;
       })
       refreshSignals();
