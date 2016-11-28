@@ -6,8 +6,53 @@ body {
   overflow: hidden;
 }
 
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  height: 33%;
+}
+
+
+#video-container {
+  height: 100%;
+  display: flex;
+  flex: none;
+  width: 60vh;
+  position: relative;
+}
+
+#data-container {
+  display: flex;
+  flex: 1;
+  position: relative;
+}
+
+
 video {
-  height: 40%;
+  height: 100%;
+}
+
+#video-container.empty video {
+  display: none;
+}
+
+.drag-instructions {
+  display: none;
+  position: absolute;
+  top: 10%;
+  height: 80%;
+  left: 10%;
+  width: 80%;
+  border: 5px dotted rgba(25, 116, 121, 0.5);
+  border-radius: 20px;
+  padding: 50px;
+  font-size: 5vh;
+  color: rgba(25, 116, 121, 0.5);
+  box-sizing: border-box;
+}
+
+.dragging .drag-instructions, .empty .drag-instructions {
+  display: block;
 }
 
 #marker {
@@ -35,11 +80,12 @@ video {
 }
 
 #controls {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 50vh;
-  margin: 1em;
+  width: 100%;
+  padding: 1em;
+}
+
+.empty #controls {
+  display: none;
 }
 
 #controls label {
@@ -64,7 +110,6 @@ canvas {
   width: 100%;
   height: 15%;
   background-color: #24252a;
-  /*background: rgba(44, 47, 52, 1);*/
 }
 
 #editor {

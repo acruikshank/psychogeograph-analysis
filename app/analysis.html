@@ -5,14 +5,32 @@
     <script src="recorded-data.js"></script>
     <script src="signal.js"></script>
     <script src="ace-1.2.5/ace.js"></script>
+    <script id="default-script" type="text/html">/* Create signal processing formulas here.
+ * Formulas can be any valid Javascript that returns a number at the end.
+ * There are 25 variables formed from combinations of
+ * [theta, alpha, low_beta, high_beta, gamma] and
+ * [af3, af4, t7, t8, pz] e.g. alpha_af3 or high_beta_pz. */
+return theta_af3</script>
   </head>
   <body>
-    <video src="" id="video" controls="true"></video>
-    <div id="controls">
-      <label for="start-range">start range</label>
-      <input id="start-range"/>
-      <label for="end-range">end range</label>
-      <input id="end-range"/>
+    <div class="head">
+      <div id="video-container" class="empty">
+        <video src="" id="video" controls="true"></video>
+        <div class="drag-instructions">
+          Drag video here
+        </div>
+      </div>
+      <div id="data-container" class="empty">
+        <div id="controls" class="empty">
+          <label for="start-range">start range</label>
+          <input id="start-range"/>
+          <label for="end-range">end range</label>
+          <input id="end-range"/>
+        </div>
+        <div class="drag-instructions">
+          Drag csv data here
+        </div>
+      </div>
     </div>
     <div id="signals">
       <div id="graphs">
@@ -25,9 +43,10 @@
   <script>
   /*
   TODO:
-  * Figure out way to populate video and csv from dev
-  * extract editor code
-  * add cancel and save editor controls. and errors.
+  * Editor window with save, cancel, error and color change buttons.
+  * Drag targets for video and csv window.
+  * Responsiveness
+  * More information for csv
   * Automatically set interval to length of video
   * Allow user to set set time at current time in video
   */
@@ -41,8 +60,7 @@
     let editor;
     initIPC();
     initEditor();
-    initVideo();
-    initData();
+    initDragging();
     el('video').addEventListener('timeupdate', timeupdate);
     el('start-range').addEventListener('blur', updateStartRange);
     el('end-range').addEventListener('blur', updateEndRange);
@@ -59,7 +77,8 @@
 
     function editSignal(signal) {
       currentSignal = signal;
-      editor.setValue(signal ? signal.script : 'return theta_af4');
+      editor.setValue(signal ? signal.script : el('default-script').innerHTML);
+      editor.clearSelection();
       document.body.setAttribute('class', 'editing');
       editor.focus();
     }
@@ -68,11 +87,6 @@
       signal.remove();
       signals = signals.filter(function(s) { return s !== signal });
       saveState()
-    }
-
-    function initColors() {
-      for (var i=0, colors = []; i<10; i++) colors.push(hsvToRGBString(i/10, 1, 1));
-      return colors;
     }
 
     function updateStartRange() {
@@ -137,14 +151,23 @@
       editor.clearSelection();
     }
 
-    function initVideo() {
-      const video = el('video')
-      video.ondragover = () => { return false; }
-      video.ondragleave = video.ondragend = () => { return false; }
-      video.ondrop = (e) => {
+    function initDragging() {
+      const videoContainer = el('video-container')
+      videoContainer.ondragover = () => { return false; }
+      videoContainer.ondragleave = video.ondragend = () => { return false; }
+      videoContainer.ondrop = (e) => {
         e.preventDefault()
         setVideo(e.dataTransfer.files[0].path)
         saveState()
+        return false
+      }
+
+      const dataContainer = el('data-container')
+      dataContainer.ondragover = () => { return false; }
+      dataContainer.ondragleave = video.ondragend = () => { return false; }
+      dataContainer.ondrop = (e) => {
+        e.preventDefault()
+        setData(e.dataTransfer.files[0].path);
         return false
       }
     }
@@ -152,22 +175,13 @@
     function setVideo(path) {
       videoPath = path
       el('video').src = videoPath;
+      el('video-container').setAttribute('class', videoPath ? '' : 'empty');
     }
 
     function setData(path) {
       dataPath = path
       data.fetchData(dataPath);
-    }
-
-    function initData() {
-      const controls = el('controls')
-      controls.ondragover = () => { return false; }
-      controls.ondragleave = video.ondragend = () => { return false; }
-      controls.ondrop = (e) => {
-        e.preventDefault()
-        setData(e.dataTransfer.files[0].path);
-        return false
-      }
+      el('data-container').setAttribute('class', dataPath ? '' : 'empty');
     }
 
     function updateScript() {
@@ -260,6 +274,11 @@
     }
     function hex(d) {
       return (d < 16 ? '0' : '') + d.toString(16);
+    }
+
+    function initColors() {
+      for (var i=0, colors = []; i<10; i++) colors.push(hsvToRGBString(i/10, .75, 1));
+      return colors;
     }
 
     function el(id) { return document.getElementById(id); }
