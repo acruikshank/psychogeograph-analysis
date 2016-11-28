@@ -41,11 +41,13 @@ const template = [
       {
         role: 'save_toolset',
         label: 'Save Toolset...',
+        accelerator: 'CommandOrControl+Shift+S',
         click: dispatch
       },
       {
         role: 'open_toolset',
         label: 'Open Toolset...',
+        accelerator: 'CommandOrControl+Shift+O',
         click: dispatch
       }
     ]

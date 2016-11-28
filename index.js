@@ -4,7 +4,7 @@ const {app, BrowserWindow, Menu, ipcMain} = require('electron')
 
 const path = require('path')
 const url = require('url')
-const { saveWorkspace, openWorkspace } = require('./storage');
+const { saveWorkspace, openWorkspace, openToolset, saveToolset } = require('./storage');
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
@@ -22,7 +22,7 @@ function createWindow () {
   }))
 
   // Open the DevTools.
-  mainWindow.webContents.openDevTools()
+  // mainWindow.webContents.openDevTools()
 
   // Emitted when the window is closed.
   mainWindow.on('closed', function () {
@@ -40,6 +40,9 @@ app.on('ready', function () {
   const menu = require('./main_menu').init();
   menu.on('save_workspace', () => saveWorkspace(workspace));
   menu.on('open_workspace', () => openWorkspace(changeWorkspace));
+  menu.on('new_workspace', () => resetWorkspace());
+  menu.on('save_toolset', () => saveToolset(workspace.signals));
+  menu.on('open_toolset', () => openToolset(changeToolset));
 
   ipcMain.on('workspace', (event, ws) => { workspace = JSON.parse(ws) })
 
@@ -49,6 +52,16 @@ app.on('ready', function () {
 function changeWorkspace(err, ws) {
   workspace = ws
   mainWindow.webContents.send('workspace', workspace)
+}
+
+function changeToolset(err, signals) {
+  workspace = workspace || {};
+  workspace.signals = signals
+  mainWindow.webContents.send('toolset', signals)
+}
+
+function resetWorkspace() {
+  mainWindow.webContents.send('reset')
 }
 
 // Quit when all windows are closed.

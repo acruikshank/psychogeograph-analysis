@@ -25,9 +25,6 @@
   <script>
   /*
   TODO:
-  * New workspace
-  * Load toolset
-  * Save toolset
   * Figure out way to populate video and csv from dev
   * extract editor code
   * add cancel and save editor controls. and errors.
@@ -55,6 +52,8 @@
       try {
         ipcRenderer = require('electron').ipcRenderer
         ipcRenderer.on('workspace', (e,m) => restoreSaved(m))
+        ipcRenderer.on('reset', (e,m) => restoreSaved({}))
+        ipcRenderer.on('toolset', (e,m) => setToolset(m))
       } catch (e) { }
     }
 
@@ -100,15 +99,23 @@
     }
 
     function setTime(elId, time) {
-      el(elId).value = new Date(time).toLocaleString();
+      var date = new Date(time);
+      if (isNaN(date.getTime()))
+        el(elId).value = '';
+      else
+        el(elId).value = date.toLocaleString();
     }
 
     function dataLoaded() {
-      if (!startRange)
-        setTime('start-range', 1000 * data.startTime);
+      if (!startRange) {
+        startRange = 1000 * data.startTime
+        setTime('start-range', startRange)
+      }
 
-      if (!endRange)
-        setTime('end-range', 1000 * data.endTime);
+      if (!endRange) {
+        endRange = 1000 * data.endTime;
+        setTime('end-range', endRange)
+      }
       refreshSignals();
       saveState()
     }
@@ -204,8 +211,8 @@
       var workspace = JSON.stringify({
         videoPath: videoPath,
         dataPath: dataPath,
-        startRange: new Date(startRange).toISOString(),
-        endRange: new Date(endRange).toISOString(),
+        startRange: startRange,
+        endRange: endRange,
         signals: signals.map(function(s) { return s.serialize() })
       });
       if (ipcRenderer)
@@ -221,15 +228,19 @@
       endRange = new Date(saved.endRange).getTime();
       setTime('end-range', endRange);
 
-      clearSignals();
-      if (!saved.signals) return;
+      setToolset(saved.signals)
+    }
 
-      signals = saved.signals.map(function(s) {
+    function setToolset(toolset) {
+      toolset = toolset || [];
+      clearSignals();
+      signals = toolset.map(function(s) {
         var signal = addSignal(s.color);
         signal.generateScript(s.script);
         signal.render(startRange, endRange);
         return signal;
       })
+      refreshSignals();
     }
 
     function hsvToRGBString(h, s, v) {
