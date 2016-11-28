@@ -175,6 +175,12 @@ button:hover {
   cursor: pointer;
 }
 
+#add-signal {
+  width: 100%;
+  margin: 2em 0;
+  text-align: left;
+}
+
 #signals {
   height: 60%;
   width: 100%;
