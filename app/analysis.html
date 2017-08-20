@@ -2,10 +2,15 @@
   <head>
     <title>Psychogeography Analysis</title>
     <link rel="stylesheet" href="analysis.css" media="screen">
+    <script src="interval.js"></script>
     <script src="recorded-data.js"></script>
     <script src="signal.js"></script>
+    <script src="map.js"></script>
+    <script src="selection.js"></script>
     <script src="ace-1.2.5/ace.js"></script>
-    <script id="default-script" type="text/html">/* Create signal processing formulas here.
+    <script async defer
+      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDSAn-W9P0AagulqroPA47vUZrJP-N04Wo">
+    </script>    <script id="default-script" type="text/html">/* Create signal processing formulas here.
  * Formulas can be any valid Javascript that returns a number at the end.
  * There are 25 variables formed from combinations of
  * [theta, alpha, low_beta, high_beta, gamma] and
@@ -22,17 +27,29 @@ return theta_af3</script>
       </div>
       <div id="data-container" class="empty">
         <div id="controls" class="empty">
-          <label for="start-range">start range</label>
-          <input id="start-range"/>
-          <label for="end-range">end range</label>
-          <input id="end-range"/>
+          <div class="center">
+            <div class="control-row">
+              <div class="field">
+                <label for="video-start">video start</label>
+                <input id="video-start"/>
+              </div>
+              <div class="field">
+                <label for="video-end">video end</label>
+                <input id="video-end"/>
+              </div>
+            </div>
+            <div class="control-row">
+            </div>
+          </div>
         </div>
+        <div id="map"></div>
         <div class="drag-instructions">
           Drag csv data here
         </div>
       </div>
     </div>
     <div id="signals">
+      <div id="selection"></div>
       <div id="graphs">
         <div id="marker"></div>
       </div>
@@ -55,20 +72,27 @@ return theta_af3</script>
   * Automatically set interval to length of video
   * Allow user to set set time at current time in video
   */
+    const LAT_SAMPLE = 26;
+    const LON_SAMPLE = 27;
     let ipcRenderer;
     let videoPath, dataPath;
     let data = RecordedData(dataLoaded);
     let colors = initColors();
-    let startRange, endRange;
+    var videoInterval, dataInterval, selectionInterval, viewInterval
+    var startRange, endRange
     let signals = [];
     let currentSignal;
     let editor;
+    let selection = Selection(document.querySelector('#graphs'), document.querySelector('#selection'))
+    var map;
     initIPC();
     initEditor();
     initDragging();
+    selection.addEventListener('click', jumpToTime)
+    selection.addEventListener('selection', (d) => console.log("selection", d))
     el('video').addEventListener('timeupdate', timeupdate);
-    el('start-range').addEventListener('blur', updateStartRange);
-    el('end-range').addEventListener('blur', updateEndRange);
+    el('video-start').addEventListener('blur', updateStartRange);
+    el('video-end').addEventListener('blur', updateEndRange);
     el('add-signal').addEventListener('click', function() { editSignal() });
 
     function initIPC() {
@@ -85,6 +109,7 @@ return theta_af3</script>
       editor.setValue(signal ? signal.script : el('default-script').innerHTML);
       editor.clearSelection();
       document.body.setAttribute('class', 'editing');
+      el('script-error').innerHTML = '';
       editor.focus();
     }
 
@@ -95,18 +120,18 @@ return theta_af3</script>
     }
 
     function updateStartRange() {
-      var next = new Date(el('start-range').value);
+      var next = new Date(el('video-start').value);
       if (isNaN(next.getTime()))
-        return setTime('start-range', next.getTime())
+        return setTime('video-start', startRange)
 
       startRange = next.getTime();
       updateSignals();
     }
 
     function updateEndRange() {
-      var next = new Date(el('end-range').value);
+      var next = new Date(el('video-end').value);
       if (isNaN(next.getTime()))
-        return setTime('end-range', next.getTime())
+        return setTime('video-end', endRange)
 
       endRange = next.getTime();
       updateSignals();
@@ -126,17 +151,17 @@ return theta_af3</script>
     }
 
     function dataLoaded() {
-      if (!startRange) {
-        startRange = 1000 * data.startTime
-        setTime('start-range', startRange)
-      }
-
-      if (!endRange) {
-        endRange = 1000 * data.endTime;
-        setTime('end-range', endRange)
-      }
+      updateRanges()
       refreshSignals();
       saveState()
+    }
+
+    function updateRanges() {
+      startRange = 1000 * data.startTime
+      setTime('video-start', startRange)
+
+      endRange = 1000 * data.endTime;
+      setTime('video-end', endRange)
     }
 
     function initEditor() {
@@ -210,6 +235,8 @@ return theta_af3</script>
       dataPath = path
       data.fetchData(dataPath);
       el('data-container').setAttribute('class', dataPath ? '' : 'empty');
+      map = Map(document.querySelector('#map'))
+      timeupdate()
     }
 
     function addSignal(color) {
@@ -221,12 +248,29 @@ return theta_af3</script>
       return signal;
     }
 
-    function timeupdate(e) {
-      var canvas = el('c');
+    function jumpToTime(fraction) {
+      let video = el('video')
+      let duration = video ? video.duration : (data.endTime - data.startTime) * 1000
+
+      timeFraction = prel(0, duration, lerp(0, (endRange - startRange)/1000, fraction))
+      console.log(duration, fraction, timeFraction)
+      el('video').currentTime = duration * timeFraction
+    }
+
+    function timeupdate() {
       // TODO: need new number for calibration
       var currentTime = startRange + el('video').currentTime*1000;
       var timeFraction = prel(startRange,endRange, currentTime);
       el('marker').style.left = lerp(0,el('graphs').offsetWidth,timeFraction);
+
+      if (!data.samples) return;
+
+      sample = data.sampleAt(currentTime / 1000);
+      let lat = sample[LAT_SAMPLE], lon = sample[LON_SAMPLE];
+      console.log('lat',lat, 'lon', lon)
+      if (isNaN(lat) || isNaN(lon)) return;
+
+      map.update(lat, lon)
     }
 
     function clearSignals() {

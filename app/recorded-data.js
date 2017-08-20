@@ -44,4 +44,4 @@ RecordedData = function(cb) {
   }
 
   return out;
-}
+};

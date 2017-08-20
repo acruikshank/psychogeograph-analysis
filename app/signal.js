@@ -32,7 +32,11 @@ function Signal(color, parent) {
 
   out.addEventListener = function(type, f) {
     signal.addEventListener('click', function(e) {
-      if (e.target.getAttribute('class') === type) f(e);
+      if (e.target.getAttribute('class') === type) {
+        e.preventDefault()
+        f(e);
+        return false;
+      }
     });
   }
 
@@ -43,7 +47,7 @@ function Signal(color, parent) {
   out.generateScript = function generateScript(s) {
     var args = ['af3','af4','t7','t8','pz'].reduce(function(args,location) {
       return args.concat(['theta','alpha','low_beta','high_beta','gamma'].map(function(name) { return name+'_'+location }))
-    }, [])
+    }, []).concat('lat','lon')
     eval('function _generated_(time,'+args.join(',')+') {'+s+'}')
     out.f = _generated_;
     out.script = s;
@@ -58,10 +62,11 @@ function Signal(color, parent) {
     ctx.fillStyle = out.color;
     ctx.globalAlpha = .5;
 
+    var signalContext = new SignalContext();
     for (var i=0; i<cw; i++) {
       var time = lerp(start, end, i/cw);
       var sample = data.sampleAt(time);
-      var result = out.f.apply(out, sample);
+      var result = out.f.apply(signalContext, sample);
       dot(ctx, i, project(minRange,maxRange,ch,0,result), color);
     }
   }
@@ -72,10 +77,11 @@ function Signal(color, parent) {
     maxRange = null;
     minRange = null;
 
+    var signalContext = new SignalContext();
     for (var i=0; i<cw; i++) {
       var time = lerp(start, end, i/cw);
       var sample = data.sampleAt(time);
-      var result = out.f.apply(out, sample);
+      var result = out.f.apply(signalContext, sample);
       if (i) {
         maxRange = Math.max(maxRange, result);
         minRange = Math.min(minRange, result);
@@ -114,12 +120,30 @@ function Signal(color, parent) {
   return out;
 }
 
+function SignalContext() {};
+SignalContext.prototype = {
+  rollingAverage: function(value, samples) {
+    if (!this.rolling)
+      this.rolling = { samples: [], index: 0, average: 0 }
+    var r = this.rolling;
+    r.average = (value + r.samples.length*r.average - (r.samples[r.index]||0)) / Math.min(r.samples.length + 1, samples);
+    r.samples[r.index] = value;
+    r.index = (r.index+1) % samples;
+    return r.average;
+  },
+  smooth: function(value, decay) {
+    if (this.smoothValue === undefined)
+      return this.smoothValue = value;
+    return this.smoothValue = this.smoothValue*(1-decay) + value*decay;
+  }
+}
+
 Signal.testScript = function(script, data) {
   var args = ['af3','af4','t7','t8','pz'].reduce(function(args,location) {
     return args.concat(['theta','alpha','low_beta','high_beta','gamma'].map(function(name) { return name+'_'+location }))
   }, [])
   eval('function _generated_(time,'+args.join(',')+') {'+script+'}')
-  _generated_.apply(0, new Float64Array(26));
+  _generated_.apply(new SignalContext(), new Float64Array(26));
 }
 
 function debounce(f, delay) {

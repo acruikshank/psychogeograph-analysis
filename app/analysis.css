@@ -27,7 +27,6 @@ body {
   position: relative;
 }
 
-
 video {
   height: 100%;
 }
@@ -58,7 +57,7 @@ video {
 #marker {
   position: absolute;
   top: 0;
-  height: 100%;
+  height: calc(100% - 5em);
   width: 50px;
   background-color: rgba(0,128,255,.2);
   margin-left: -25px;
@@ -75,12 +74,9 @@ video {
   left: 50%;
 }
 
-#graphs {
-  position: relative;
-}
-
 #controls {
-  width: 100%;
+  display: flex;
+  flex: 1;
   padding: 1em;
 }
 
@@ -95,21 +91,44 @@ video {
   padding: .2em;
 }
 
+#controls .center {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+#controls .control-row {
+  display: flex;
+  flex: 1;
+}
+
+#controls .field {
+  flex: 1;
+}
+
 #controls input {
   font-family: Andale Mono, monospace;
   color: #fff;
   border: none;
   background: none;
-  font-size: 1.5em;
+  font-size: 1.1vw;
+  line-height: 2.4vw;
   margin-bottom: .8em;
   width: 100%;
   padding: .2em;
 }
 
+#map {
+  display: flex;
+  flex: 1;
+  height: 100%;
+}
+#map .gm-style-cc { display: none; }
+.empty #map { display: none; }
+
 canvas {
   width: 100%;
   height: 15%;
-  background-color: #24252a;
 }
 
 #edit-pane {
@@ -175,17 +194,38 @@ button:hover {
   cursor: pointer;
 }
 
+#graphs {
+  width: 100%;
+}
+
 #add-signal {
   width: 100%;
   margin: 2em 0;
+  height: 2em;
+  line-height: 1em;
   text-align: left;
 }
 
 #signals {
-  height: 60%;
+  /*height: 60%;*/
   width: 100%;
   overflow-y: auto;
   padding-top: 1em;
+  position: relative;
+  -webkit-user-select: none;
+}
+
+#selection {
+  position: absolute;
+  display: none;
+  height: calc(100% - 5em);
+  top: 0;
+  bottom: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-color: rgba(209, 197, 33, 0.15);
+  border-right: 1px solid rgba(209, 197, 33, 0.6);
+  border-left: 1px solid rgba(209, 197, 33, 0.6);
 }
 
 .signal {
