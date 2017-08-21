@@ -1,5 +1,5 @@
-function Signal(color, parent) {
-  var out = {color: color};
+function Signal(color, name, parent) {
+  var out = {color: color, name: name};
 
   var canvas = genEl('canvas')
   var colorInput = genEl('input',{
@@ -15,12 +15,20 @@ function Signal(color, parent) {
 
   var signal = genEl('div','signal',[
     canvas,
+    genEl('input', {'class':'signal-name', tabindex:'-1', value:out.name}),
     genEl('div','signal-controls', [
       genEl('button',{'class':'edit',tabindex:'-1'},'edit'),
       genEl('button',{'class':'remove',tabindex:'-1'},'remove'),
       colorInput
     ])
   ])
+
+  signal.querySelector('.signal-name').addEventListener('mousedown', function(e) {
+    e.stopPropagation()
+  })
+  signal.querySelector('.signal-name').addEventListener('change', function(e) {
+    out.name = signal.querySelector('.signal-name').value
+  })
 
   parent.appendChild(signal);
 
@@ -93,7 +101,7 @@ function Signal(color, parent) {
   }
 
   out.serialize = function() {
-    return {color: out.color, script: out.script};
+    return {color: out.color, name: out.name, script: out.script};
   }
 
   function dot(ctx, x, y, color) {
