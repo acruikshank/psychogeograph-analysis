@@ -108,6 +108,7 @@ return theta_af3</script>
     initDragging();
     selection.addEventListener('click', jumpToTime)
     selection.addEventListener('selection', (d) => console.log("selection", d))
+    window.addEventListener('resize', resizeSignals)
     el('video').addEventListener('timeupdate', timeupdate);
     el('data-sync').addEventListener('blur', updateDataSync);
     el('video-sync').addEventListener('blur', updateVideoSync);
@@ -154,6 +155,11 @@ return theta_af3</script>
       videoInterval.syncPoint = 1000*(3600*time.h + 60*time.m + time.s)
       updateRanges()
       updateSignals()
+    }
+
+    function resizeSignals() {
+      signals.forEach((s) => s.resize())
+      refreshSignals()
     }
 
     function updateSignals() {

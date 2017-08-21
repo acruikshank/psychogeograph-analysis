@@ -38,6 +38,11 @@ function Signal(color, name, parent) {
   var maxRange;
   var minRange;
 
+  out.resize = function() {
+    cw = canvas.width = canvas.offsetWidth * 2;
+    ch = canvas.height = canvas.offsetHeight * 2;
+  }
+
   out.addEventListener = function(type, f) {
     signal.addEventListener('click', function(e) {
       if (e.target.getAttribute('class') === type) {
