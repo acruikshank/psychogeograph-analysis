@@ -275,9 +275,9 @@ return theta_af3</script>
         timeupdate()
     }
 
-    function addSignal(color) {
+    function addSignal(color, name) {
       if (!color) color = colors[signals.length%colors.length];
-      var signal = Signal(color, 'signal ' + (signals.length+1), el('graphs'));
+      var signal = Signal(color, 'signal ' + (signals.length+1), name, el('graphs'));
       signal.addEventListener('edit', function() { editSignal(signal) })
       signal.addEventListener('remove', function() { removeSignal(signal); })
       signals.push(signal);
@@ -351,7 +351,7 @@ return theta_af3</script>
       toolset = toolset || [];
       clearSignals();
       signals = toolset.map(function(s) {
-        var signal = addSignal(s.color);
+        var signal = addSignal(s.color, s.name);
         signal.generateScript(s.script);
         if (viewInterval)
           signal.render(data, viewInterval.start, viewInterval.end);
