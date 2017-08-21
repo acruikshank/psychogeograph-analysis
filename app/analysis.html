@@ -161,12 +161,15 @@ return theta_af3</script>
       saveState();
     }
 
-    function dataLoaded() {
-      dataInterval = Interval(data.startTime * 1000, data.endTime * 1000)
-      dataInterval.syncPoint = dataInterval.start
-      updateRanges()
-      refreshSignals();
-      saveState()
+    function dataLoaded(cb) {
+      return function() {
+        dataInterval = Interval(data.startTime * 1000, data.endTime * 1000)
+        dataInterval.syncPoint = dataInterval.start
+        updateRanges()
+        refreshSignals();
+        saveState()
+        if (cb) cb()
+      }
     }
 
     function updateRanges() {
@@ -267,9 +270,9 @@ return theta_af3</script>
       el('video-container').setAttribute('class', videoPath ? '' : 'empty');
     }
 
-    function setData(path) {
+    function setData(path, cb) {
       dataPath = path
-      data.fetchData(dataPath, dataLoaded);
+      data.fetchData(dataPath, dataLoaded(cb));
       el('data-container').setAttribute('class', dataPath ? '' : 'empty');
       map = Map(document.querySelector('#map'))
       if (videoInterval)
@@ -323,13 +326,16 @@ return theta_af3</script>
     }
 
     function refreshSignals() {
+      if (!viewInterval) return
       signals.forEach((s) => s.render(data, viewInterval.start, viewInterval.end));
     }
 
     function saveState() {
       var workspace = JSON.stringify({
         videoPath: videoPath,
+        videoSync: videoInterval ? videoInterval.syncPoint : 0,
         dataPath: dataPath,
+        dataSync: dataInterval ? dataInterval.syncPoint : 0,
         viewInterval: viewInterval,
         signals: signals.map(function(s) { return s.serialize() })
       });
@@ -339,14 +345,18 @@ return theta_af3</script>
 
     function restoreSaved(saved) {
       setVideo(saved.videoPath);
-      setData(saved.dataPath);
+      setData(saved.dataPath, dataSet);
 
-      startRange = new Date(saved.startRange).getTime();
-      setTime('start-range', startRange);
-      endRange = new Date(saved.endRange).getTime();
-      setTime('end-range', endRange);
+      function dataSet() {
+        if (videoInterval)
+          videoInterval.syncPoint = saved.videoSync
 
-      setToolset(saved.signals)
+        if (dataInterval)
+          dataInterval.syncPoint = saved.dataSync
+
+        updateRanges()
+        setToolset(saved.signals)
+      }
     }
 
     function setToolset(toolset) {
