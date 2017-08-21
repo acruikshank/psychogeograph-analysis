@@ -43,5 +43,22 @@ RecordedData = function() {
       : sampleAt(time, midpoint, end)
   }
 
+  out.indexAt  = function indexAt(time, start, end) {
+    start = start || 0;
+    end = (end == null ? data.length : end);
+    if (end - start < 2)
+      return start;
+    var midpoint = start + Math.floor((end-start)/2);
+    return time < data[midpoint][0]
+      ? indexAt(time, start, midpoint)
+      : indexAt(time, midpoint, end)
+  }
+
+  out.samplesInRange = function samplesInRange(start, end) {
+    var startIndex = out.indexAt(start)
+    var endIndex = out.indexAt(end)
+    return data.slice(startIndex, endIndex)
+  }
+
   return out;
 };

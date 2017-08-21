@@ -119,6 +119,7 @@ return theta_af3</script>
         ipcRenderer.on('workspace', (e,m) => restoreSaved(m))
         ipcRenderer.on('reset', (e,m) => restoreSaved({}))
         ipcRenderer.on('toolset', (e,m) => setToolset(m))
+        ipcRenderer.on('signalData', (e,m) => sendSignalData(m))
       } catch (e) { }
     }
 
@@ -277,7 +278,8 @@ return theta_af3</script>
 
     function addSignal(color, name) {
       if (!color) color = colors[signals.length%colors.length];
-      var signal = Signal(color, 'signal ' + (signals.length+1), name, el('graphs'));
+      name = name || ('signal ' + (signals.length+1))
+      var signal = Signal(color, name, el('graphs'));
       signal.addEventListener('edit', function() { editSignal(signal) })
       signal.addEventListener('remove', function() { removeSignal(signal); })
       signals.push(signal);
@@ -358,6 +360,17 @@ return theta_af3</script>
         return signal;
       })
       refreshSignals();
+    }
+
+    function sendSignalData() {
+      let exporters = signals.map((s) => s.exporter())
+      let samples = data.samplesInRange(viewInterval.start/1000, viewInterval.end/1000)
+      let out = {
+        labels: ['time'].concat(signals.map((s) => s.name)),
+        data: samples.map((s) => [s[0]*1000].concat(exporters.map((e) => e.sample(s))))
+      }
+      if (ipcRenderer)
+        ipcRenderer.send('signalData', out)
     }
 
     function hsvToRGBString(h, s, v) {

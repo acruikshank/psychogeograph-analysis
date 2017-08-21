@@ -13,7 +13,7 @@
   "devDependencies": {
     "devtron": "^1.4.0",
     "electron": "^1.4.1",
-    "electron-builder": "^8.6.0"
+    "electron-builder": "^8.7.0"
   },
   "build": {
     "appId": "sivoh.PsygoAnalysis",

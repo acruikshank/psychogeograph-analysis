@@ -79,6 +79,11 @@ function Signal(color, name, parent) {
     }
   }
 
+  out.exporter = function() {
+    var signalContext = new SignalContext();
+    return { sample: function(s) { return out.f.apply(signalContext, s) } }
+  }
+
   out.updateRanges = function(data, startRange, endRange) {
     var start = startRange / 1000;
     var end = endRange / 1000;

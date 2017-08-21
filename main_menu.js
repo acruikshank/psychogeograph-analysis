@@ -49,6 +49,12 @@ const template = [
         label: 'Open Toolset...',
         accelerator: 'CommandOrControl+Shift+O',
         click: dispatch
+      },
+      {
+        role: 'export_csv',
+        label: 'Export CSV...',
+        accelerator: 'CommandOrControl+Shift+E',
+        click: dispatch
       }
     ]
   }
