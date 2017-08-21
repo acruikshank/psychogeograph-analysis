@@ -31,11 +31,29 @@ return theta_af3</script>
             <div class="control-row">
               <div class="field">
                 <label for="video-start">video start</label>
-                <input id="video-start"/>
+                <input id="video-start" disabled="true" />
+              </div>
+              <div class="field">
+                <label for="video-sync">sync</label>
+                <input id="video-sync" disabled="true"/>
               </div>
               <div class="field">
                 <label for="video-end">video end</label>
-                <input id="video-end"/>
+                <input id="video-end" disabled="true"/>
+              </div>
+            </div>
+            <div class="control-row">
+              <div class="field">
+                <label for="data-start">data start</label>
+                <input id="data-start" disabled="true"/>
+              </div>
+              <div class="field">
+                <label for="data-sync">sync</label>
+                <input id="data-sync"/>
+              </div>
+              <div class="field">
+                <label for="data-end">data end</label>
+                <input id="data-end" disabled="true"/>
               </div>
             </div>
             <div class="control-row">
@@ -76,10 +94,10 @@ return theta_af3</script>
     const LON_SAMPLE = 27;
     let ipcRenderer;
     let videoPath, dataPath;
-    let data = RecordedData(dataLoaded);
+    let data = RecordedData();
     let colors = initColors();
     var videoInterval, dataInterval, selectionInterval, viewInterval
-    var startRange, endRange
+    var viewMode = 'intersection';
     let signals = [];
     let currentSignal;
     let editor;
@@ -91,8 +109,8 @@ return theta_af3</script>
     selection.addEventListener('click', jumpToTime)
     selection.addEventListener('selection', (d) => console.log("selection", d))
     el('video').addEventListener('timeupdate', timeupdate);
-    el('video-start').addEventListener('blur', updateStartRange);
-    el('video-end').addEventListener('blur', updateEndRange);
+    el('data-sync').addEventListener('blur', updateDataSync);
+    el('video-sync').addEventListener('blur', updateVideoSync);
     el('add-signal').addEventListener('click', function() { editSignal() });
 
     function initIPC() {
@@ -119,49 +137,57 @@ return theta_af3</script>
       saveState()
     }
 
-    function updateStartRange() {
-      var next = new Date(el('video-start').value);
-      if (isNaN(next.getTime()))
-        return setTime('video-start', startRange)
-
-      startRange = next.getTime();
-      updateSignals();
+    function updateDataSync() {
+      let time = parseTime(el('data-sync').value)
+      var date = new Date(dataInterval.start);
+      date.setHours(time.h)
+      date.setMinutes(time.m)
+      date.setSeconds(time.s)
+      dataInterval.syncPoint = date.getTime()
+      updateRanges()
+      updateSignals()
     }
 
-    function updateEndRange() {
-      var next = new Date(el('video-end').value);
-      if (isNaN(next.getTime()))
-        return setTime('video-end', endRange)
-
-      endRange = next.getTime();
-      updateSignals();
+    function updateVideoSync() {
+      let time = parseTime(el('video-sync').value)
+      videoInterval.syncPoint = 1000*(3600*time.h + 60*time.m + time.s)
+      updateRanges()
+      updateSignals()
     }
 
     function updateSignals() {
-      signals.forEach(function(signal) { signal.render(data, startRange, endRange); })
+      signals.forEach(function(signal) { signal.render(data, viewInterval.start, viewInterval.end); })
       saveState();
     }
 
-    function setTime(elId, time) {
-      var date = new Date(time);
-      if (isNaN(date.getTime()))
-        el(elId).value = '';
-      else
-        el(elId).value = date.toLocaleString();
-    }
-
     function dataLoaded() {
+      dataInterval = Interval(data.startTime * 1000, data.endTime * 1000)
+      dataInterval.syncPoint = dataInterval.start
       updateRanges()
       refreshSignals();
       saveState()
     }
 
     function updateRanges() {
-      startRange = 1000 * data.startTime
-      setTime('video-start', startRange)
+      if (videoInterval) {
+        el('video-start').value = formatMillis(videoInterval.start)
+        el('video-sync').value = formatMillis(videoInterval.syncPoint)
+        el('video-end').value = formatMillis(videoInterval.end)
+      }
 
-      endRange = 1000 * data.endTime;
-      setTime('video-end', endRange)
+      if (dataInterval) {
+        setTime('data-start', dataInterval.start, true)
+        setTime('data-sync', dataInterval.syncPoint, true)
+        setTime('data-end', dataInterval.end, true)
+        if (videoInterval) {
+          if (viewMode == 'intersection')
+            viewInterval = dataInterval.intersection(videoInterval)
+          else
+            viewInterval = dataInterval.union(videoInterval)
+        } else {
+          viewInterval = dataInterval
+        }
+      }
     }
 
     function initEditor() {
@@ -171,6 +197,7 @@ return theta_af3</script>
       editor.setShowPrintMargin(false);
       editor.getSession().setUseSoftTabs(true);
       editor.setFontSize(12);
+      editor.$blockScrolling = Infinity
       editor.commands.addCommand({
           name: 'runScript',
           bindKey: {win: 'Ctrl-Alt-Enter',  mac: 'Ctrl-Alt-Enter'},
@@ -195,7 +222,8 @@ return theta_af3</script>
       if (!currentSignal)
         currentSignal = addSignal();
       currentSignal.generateScript(editor.getValue());
-      currentSignal.render(data, startRange, endRange);
+      if (viewInterval)
+        currentSignal.render(data, viewInterval.start, viewInterval.end);
       closeEditor();
       saveState();
     }
@@ -227,16 +255,24 @@ return theta_af3</script>
 
     function setVideo(path) {
       videoPath = path
-      el('video').src = videoPath;
+      let video = el('video')
+      video.src = videoPath;
+      video.addEventListener('durationchange', function() {
+        videoInterval = Interval(0, video.duration*1000)
+        el('video-sync').removeAttribute('disabled')
+        videoInterval.syncPoint = 0
+        updateRanges()
+      })
       el('video-container').setAttribute('class', videoPath ? '' : 'empty');
     }
 
     function setData(path) {
       dataPath = path
-      data.fetchData(dataPath);
+      data.fetchData(dataPath, dataLoaded);
       el('data-container').setAttribute('class', dataPath ? '' : 'empty');
       map = Map(document.querySelector('#map'))
-      timeupdate()
+      if (videoInterval)
+        timeupdate()
     }
 
     function addSignal(color) {
@@ -249,25 +285,29 @@ return theta_af3</script>
     }
 
     function jumpToTime(fraction) {
-      let video = el('video')
-      let duration = video ? video.duration : (data.endTime - data.startTime) * 1000
+      if (!viewInterval) return
+      let time = viewInterval.interp(fraction)
 
-      timeFraction = prel(0, duration, lerp(0, (endRange - startRange)/1000, fraction))
-      console.log(duration, fraction, timeFraction)
-      el('video').currentTime = duration * timeFraction
+      if (videoInterval) // timeupdate event will move marker
+        el('video').currentTime = viewInterval.translateTo(videoInterval, time) / 1000
+      else
+        markerUpdate(time)
     }
 
     function timeupdate() {
-      // TODO: need new number for calibration
-      var currentTime = startRange + el('video').currentTime*1000;
-      var timeFraction = prel(startRange,endRange, currentTime);
-      el('marker').style.left = lerp(0,el('graphs').offsetWidth,timeFraction);
+      if (!viewInterval) return
+      var currentTime = videoInterval.translateTo(viewInterval, el('video').currentTime*1000);
+      markerUpdate(currentTime)
+    }
 
-      if (!data.samples) return;
+    function markerUpdate(currentTime) {
+      if (!dataInterval) return;
+
+      var timeFraction = viewInterval.fraction(currentTime);
+      el('marker').style.left = lerp(0,el('graphs').offsetWidth,timeFraction);
 
       sample = data.sampleAt(currentTime / 1000);
       let lat = sample[LAT_SAMPLE], lon = sample[LON_SAMPLE];
-      console.log('lat',lat, 'lon', lon)
       if (isNaN(lat) || isNaN(lon)) return;
 
       map.update(lat, lon)
@@ -281,15 +321,14 @@ return theta_af3</script>
     }
 
     function refreshSignals() {
-      signals.forEach((s) => s.render(data, startRange, endRange));
+      signals.forEach((s) => s.render(data, viewInterval.start, viewInterval.end));
     }
 
     function saveState() {
       var workspace = JSON.stringify({
         videoPath: videoPath,
         dataPath: dataPath,
-        startRange: startRange,
-        endRange: endRange,
+        viewInterval: viewInterval,
         signals: signals.map(function(s) { return s.serialize() })
       });
       if (ipcRenderer)
@@ -314,7 +353,8 @@ return theta_af3</script>
       signals = toolset.map(function(s) {
         var signal = addSignal(s.color);
         signal.generateScript(s.script);
-        signal.render(data, startRange, endRange);
+        if (viewInterval)
+          signal.render(data, viewInterval.start, viewInterval.end);
         return signal;
       })
       refreshSignals();
@@ -344,9 +384,26 @@ return theta_af3</script>
       return colors;
     }
 
+    function setTime(elId, time) {
+      var date = new Date(time);
+      if (isNaN(date.getTime()))
+        el(elId).value = '';
+      else
+        el(elId).value = formatFullTime(date);
+    }
+
     function el(id) { return document.getElementById(id); }
     function project(a,b,c,d,x) { return lerp(c,d,prel(a,b,x)) }
     function lerp(a,b,x) { return a + x*(b-a); }
     function prel(a,b,x) { return (x-a)/(b-a); }
+    function parseTime(str) {
+      var m = str.match(/(\d+):(\d+):(\d+)\s*(AM|PM)?/i)
+      if (!m) return {h:0, m:0, s:0}
+      return {h: (parseInt(m[1])%12) + (m[4]=='PM'?12:0), m: parseInt(m[2]), s: parseInt(m[3]) }
+    }
+    function formatMillis(ms) { return Math.floor(ms/3600000) + ':' + pad2(Math.floor(ms/60000)%60) + ':' + pad2(Math.floor(ms/1000)%60) }
+    function formatTime(d) { return ((d.getHours()+11)%12+1) + ':' + pad2(d.getMinutes()) + ':' + pad2(d.getSeconds()) }
+    function formatFullTime(d) { return formatTime(d) + (d.getHours() >= 12 ? ' PM' : ' AM') }
+    function pad2(n) { return (n > 9 ? '' : '0') + n }
   </script>
 </html>

@@ -30,5 +30,9 @@ function Interval(start, end) {
     return (time-this.start) / (this.end - this.start)
   }
 
+  out.translateTo = function(other, time) {
+    return time - this.syncPoint + other.syncPoint
+  }
+
   return out;
 }

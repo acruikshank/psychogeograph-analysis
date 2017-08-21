@@ -42,10 +42,11 @@ video {
   height: 80%;
   left: 10%;
   width: 80%;
-  border: 5px dotted rgba(25, 116, 121, 0.5);
-  border-radius: 20px;
+  border: 3px dotted rgba(25, 116, 121, 0.5);
+  border-radius: 10px;
   padding: 50px;
-  font-size: 5vh;
+  font-size: 4vh;
+  font-weight: bold;
   color: rgba(25, 116, 121, 0.5);
   box-sizing: border-box;
 }
@@ -95,6 +96,7 @@ video {
   display: flex;
   flex-direction: column;
   flex: 1;
+  height: 31vh;
 }
 
 #controls .control-row {
@@ -112,7 +114,7 @@ video {
   border: none;
   background: none;
   font-size: 1.1vw;
-  line-height: 2.4vw;
+  line-height: 1.4vw;
   margin-bottom: .8em;
   width: 100%;
   padding: .2em;

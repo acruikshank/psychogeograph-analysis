@@ -1,8 +1,8 @@
-RecordedData = function(cb) {
+RecordedData = function() {
   var data = [];
   var out = {};
 
-  out.fetchData = function fetchData(file) {
+  out.fetchData = function fetchData(file, cb) {
     var request = new XMLHttpRequest();
     request.open("GET", file, true);
 
@@ -11,13 +11,13 @@ RecordedData = function(cb) {
         if (request.status != 200)
           console.error(request.responseText);
         else
-          uploadComplete(request.response);
+          uploadComplete(request.response, cb);
       }
     }
     request.send();
   }
 
-  function uploadComplete(csv) {
+  function uploadComplete(csv, cb) {
     for (var re = /(.*)\r?\n/gm, m, i=0; m = re.exec(csv); i++) {
       if (i>0) {
         var sample = new Float64Array(m[1].split(',').map(function(v) { return parseFloat(v) }));
