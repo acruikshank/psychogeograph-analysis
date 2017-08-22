@@ -416,7 +416,8 @@ return theta_af3</script>
       let samples = data.samplesInRange(viewInterval.start/1000, viewInterval.end/1000)
       let out = {
         labels: ['time'].concat(signals.map((s) => s.name)),
-        data: samples.map((s) => [s[0]*1000].concat(exporters.map((e) => e.sample(s))))
+        data: samples.map((s) => [s[0]*1000].concat(exporters.map((e) => e.sample(s)))),
+        markers: markers.map((m) => m.serialize())
       }
       if (ipcRenderer)
         ipcRenderer.send('signalData', out)

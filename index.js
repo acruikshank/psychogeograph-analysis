@@ -63,7 +63,7 @@ function changeToolset(err, signals) {
 }
 
 function requestWorkspace() {
-  mainWindow.webContents.send('saveWorkspace')  
+  mainWindow.webContents.send('saveWorkspace')
 }
 
 function requestExport() {
