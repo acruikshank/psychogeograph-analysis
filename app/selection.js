@@ -2,18 +2,22 @@
       var isDragging = false;
       var dragOrigin;
       var events = {}
+      var start, width
       view.style.display = 'none';
 
       control.addEventListener('mousedown', e => {
         isDragging = true;
-        view.style.display = 'none';
+        clear()
         view.style.left = dragOrigin = e.clientX;
         view.style.width =  0
       })
 
       control.addEventListener('mousemove', e => {
         if (isDragging) {
-          view.style.display = 'block';
+          if (view.style.display !== 'block') {
+            notify('select', {})
+            view.style.display = 'block';
+          }
           if (e.clientX < dragOrigin) {
             view.style.left = e.clientX;
             view.style.width =  dragOrigin - e.clientX
@@ -34,9 +38,15 @@
           return;
         }
 
-        let start = parseInt(view.style.left) / control.offsetWidth
-        let width = parseInt(view.style.width) / control.offsetWidth
-        notify('selection', {start: start, width: width})
+        start = parseInt(view.style.left) / control.offsetWidth
+        width = parseInt(view.style.width) / control.offsetWidth
+      }
+
+      function clear() {
+        if (view.style.display !== 'none') {
+          notify('deselect', {})
+          view.style.display = 'none';
+        }
       }
 
       control.addEventListener('mouseup', endDragging)
@@ -46,5 +56,5 @@
       function addEventListener(type, fn) { (events[type] = events[type] || []).push(fn) }
       function notify(type, data) { if (events[type]) events[type].forEach((f) => f(data)) }
 
-      return { addEventListener: addEventListener }
+      return { addEventListener: addEventListener, clear: clear, start: ()=>start, width: ()=>width }
     }

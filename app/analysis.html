@@ -7,6 +7,7 @@
     <script src="signal.js"></script>
     <script src="map.js"></script>
     <script src="selection.js"></script>
+    <script src="marker.js"></script>
     <script src="ace-1.2.5/ace.js"></script>
     <script async defer
       src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDSAn-W9P0AagulqroPA47vUZrJP-N04Wo">
@@ -57,6 +58,7 @@ return theta_af3</script>
               </div>
             </div>
             <div class="control-row">
+              <button id="add-marker">+ add marker</button>
             </div>
           </div>
         </div>
@@ -68,16 +70,17 @@ return theta_af3</script>
     </div>
     <div id="signals">
       <div id="graphs">
-        <div id="marker"></div>
+        <div id="current-time"></div>
+        <div id="markers"></div>
+        <div id="selection"></div>
       </div>
-      <div id="selection"></div>
       <button id="add-signal">+ add signal</button>
     </div>
     <div id="edit-pane">
       <div id="edit-control">
         <span id="script-error"></span>
-        <button class="save">save</button>
-        <button class="cancel">cancel</button>
+        <button class="save" tabindex="-1">save</button>
+        <button class="cancel" tabindex="-1">cancel</button>
       </div>
       <div id="editor"></div>
     </div>
@@ -85,10 +88,6 @@ return theta_af3</script>
   <script>
   /*
   TODO:
-  * More information for csv
-  * context and signal processing functions.
-  * Automatically set interval to length of video
-  * Allow user to set set time at current time in video
   */
     const LAT_SAMPLE = 26;
     const LON_SAMPLE = 27;
@@ -99,6 +98,7 @@ return theta_af3</script>
     var videoInterval, dataInterval, selectionInterval, viewInterval
     var viewMode = 'intersection';
     let signals = [];
+    let markers = [];
     let currentSignal;
     let editor;
     let selection = Selection(document.querySelector('#graphs'), document.querySelector('#selection'))
@@ -107,12 +107,14 @@ return theta_af3</script>
     initEditor();
     initDragging();
     selection.addEventListener('click', jumpToTime)
-    selection.addEventListener('selection', (d) => console.log("selection", d))
+    selection.addEventListener('select', () => addClass(document.body, 'selection'))
+    selection.addEventListener('deselect', () => removeClass(document.body, 'selection'))
     window.addEventListener('resize', resizeSignals)
     el('video').addEventListener('timeupdate', timeupdate);
     el('data-sync').addEventListener('blur', updateDataSync);
     el('video-sync').addEventListener('blur', updateVideoSync);
     el('add-signal').addEventListener('click', function() { editSignal() });
+    el('add-marker').addEventListener('click', function() { addMarker() });
 
     function initIPC() {
       try {
@@ -133,6 +135,28 @@ return theta_af3</script>
       editor.focus();
     }
 
+    function addMarker() {
+      let color = colors[colors.length - 1 - markers.length%colors.length];
+      let name = 'marker ' + (markers.length+1)
+      let start = viewInterval.interp(selection.start())
+      let end = viewInterval.interp(selection.start() + selection.width())
+      var marker = Marker(el('markers'), start, end, name, color);
+      el('markers').appendChild(marker.marker)
+      marker.onremove = function() { removeMarker(marker) }
+      markers.push(marker);
+      refreshSignals()
+      selection.clear()
+      marker.marker.querySelector('input').focus()
+      marker.marker.querySelector('input').select()
+    }
+
+    function removeMarker(marker) {
+      let index = markers.indexOf(marker)
+      if (~index) markers.splice(index, 1)
+      el('markers').removeChild(marker.marker)
+      refreshSignals()
+    }
+
     function removeSignal(signal) {
       signal.remove();
       signals = signals.filter(function(s) { return s !== signal });
@@ -146,14 +170,12 @@ return theta_af3</script>
       date.setMinutes(time.m)
       date.setSeconds(time.s)
       dataInterval.syncPoint = date.getTime()
-      updateRanges()
       updateSignals()
     }
 
     function updateVideoSync() {
       let time = parseTime(el('video-sync').value)
       videoInterval.syncPoint = 1000*(3600*time.h + 60*time.m + time.s)
-      updateRanges()
       updateSignals()
     }
 
@@ -163,7 +185,8 @@ return theta_af3</script>
     }
 
     function updateSignals() {
-      signals.forEach(function(signal) { signal.render(data, viewInterval.start, viewInterval.end); })
+      updateRanges()
+      refreshSignals()
       saveState();
     }
 
@@ -216,6 +239,7 @@ return theta_af3</script>
       editor.renderer.setPadding(15);
       editor.renderer.setScrollMargin(15);
       editor.clearSelection();
+      document.querySelector('.ace_text-input').setAttribute('tabindex','-1')
       el('script-error').innerHTML = ''
 
       document.querySelector('#edit-control .save').addEventListener('click', updateScript);
@@ -271,7 +295,7 @@ return theta_af3</script>
         videoInterval = Interval(0, video.duration*1000)
         el('video-sync').removeAttribute('disabled')
         videoInterval.syncPoint = 0
-        updateRanges()
+        updateSignals()
       })
       el('video-container').setAttribute('class', videoPath ? '' : 'empty');
     }
@@ -302,20 +326,20 @@ return theta_af3</script>
       if (videoInterval) // timeupdate event will move marker
         el('video').currentTime = viewInterval.translateTo(videoInterval, time) / 1000
       else
-        markerUpdate(time)
+        timeUpdate(time)
     }
 
     function timeupdate() {
       if (!viewInterval) return
       var currentTime = videoInterval.translateTo(viewInterval, el('video').currentTime*1000);
-      markerUpdate(currentTime)
+      timeUpdate(currentTime)
     }
 
-    function markerUpdate(currentTime) {
+    function timeUpdate(currentTime) {
       if (!dataInterval) return;
 
       var timeFraction = viewInterval.fraction(currentTime);
-      el('marker').style.left = lerp(0,el('graphs').offsetWidth,timeFraction);
+      el('current-time').style.left = lerp(0,el('graphs').offsetWidth,timeFraction);
 
       sample = data.sampleAt(currentTime / 1000);
       let lat = sample[LAT_SAMPLE], lon = sample[LON_SAMPLE];
@@ -334,6 +358,7 @@ return theta_af3</script>
     function refreshSignals() {
       if (!viewInterval) return
       signals.forEach((s) => s.render(data, viewInterval.start, viewInterval.end));
+      markers.forEach((m) => m.reposition(viewInterval))
     }
 
     function saveState() {
@@ -350,6 +375,7 @@ return theta_af3</script>
     }
 
     function restoreSaved(saved) {
+      clearSignals();
       setVideo(saved.videoPath);
       setData(saved.dataPath, dataSet);
 
@@ -371,8 +397,6 @@ return theta_af3</script>
       signals = toolset.map(function(s) {
         var signal = addSignal(s.color, s.name);
         signal.generateScript(s.script);
-        if (viewInterval)
-          signal.render(data, viewInterval.start, viewInterval.end);
         return signal;
       })
       refreshSignals();
@@ -421,6 +445,16 @@ return theta_af3</script>
         el(elId).value = formatFullTime(date);
     }
 
+    function classes(el) { return el.getAttribute('class') ? el.getAttribute('class').split(/\s+/g) : [] }
+    function removeClass(el, c) {
+      let cs = classes(el), i = c.indexOf(c)
+      cs.splice(i,1)
+      if (~i) el.setAttribute('class',cs.join(' '))
+    }
+    function addClass(el,c) {
+      removeClass(el,c)
+      el.setAttribute('class', [c].concat(classes(document.body)).join(' '))
+    }
     function el(id) { return document.getElementById(id); }
     function project(a,b,c,d,x) { return lerp(c,d,prel(a,b,x)) }
     function lerp(a,b,x) { return a + x*(b-a); }

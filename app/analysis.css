@@ -55,7 +55,7 @@ video {
   display: block;
 }
 
-#marker {
+#current-time {
   position: absolute;
   top: 0;
   height: 100%;
@@ -65,7 +65,7 @@ video {
   z-index: 1;
 }
 
-#marker:after {
+#current-time:after {
   content: '';
   border: 1px solid rgb(0,128,255);
   position: absolute;
@@ -209,9 +209,11 @@ button:hover {
 
 #graphs {
   width: 100%;
+  position: relative;
 }
 
 #add-signal {
+  color: rgba(255,255,255,.6);
   width: 100%;
   margin: 2em 0;
   height: 2em;
@@ -219,6 +221,21 @@ button:hover {
   text-align: left;
   padding: 0 0 0 5vh;
   font-size: 2.5vh;
+}
+#add-signal:hover {
+  color: #fff;
+}
+
+#add-marker {
+  display: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  text-align: left;
+}
+
+.selection #add-marker {
+  display: inline-block;
 }
 
 #signals {
@@ -241,6 +258,63 @@ button:hover {
   background-color: rgba(209, 197, 33, 0.15);
   border-right: 1px solid rgba(209, 197, 33, 0.6);
   border-left: 1px solid rgba(209, 197, 33, 0.6);
+}
+
+#markers {
+  width: 100%;
+}
+
+.marker {
+  position: absolute;
+  opacity: .3;
+  top: 0;
+  height: calc(100% + 28px);
+}
+
+.marker .marker-name {
+  position: absolute;
+  bottom: 0;
+  background: none;
+  border: none;
+  padding: 2px;
+  font-size: 14px;
+  font-weight: bold;
+  color: rgb(26,25,27);
+  width: calc(100% - 46px);
+  left: 23px;
+}
+
+.marker .color {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 23px;
+  height: 23px;
+  border: none;
+  opacity: 0;
+  transition: opacity .2s linear;
+}
+.marker:hover .color {
+  opacity: 1;
+}
+
+.marker .remove {
+  position: absolute;
+  margin: 0;
+  padding: 0 3px;
+  color: #000;
+  font-size: 24px;
+  line-height: 20px;
+  bottom: 0;
+  left: 0;
+  opacity: 0;
+  transition: opacity .2s linear;
+}
+.marker:hover .remove {
+  opacity: 1;
+}
+.marker .remove:hover {
+  background-color: #fff;
 }
 
 .signal {
