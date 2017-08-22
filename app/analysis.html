@@ -114,7 +114,7 @@ return theta_af3</script>
     el('data-sync').addEventListener('blur', updateDataSync);
     el('video-sync').addEventListener('blur', updateVideoSync);
     el('add-signal').addEventListener('click', function() { editSignal() });
-    el('add-marker').addEventListener('click', function() { addMarker() });
+    el('add-marker').addEventListener('click', function() { createMarker() });
 
     function initIPC() {
       try {
@@ -123,6 +123,7 @@ return theta_af3</script>
         ipcRenderer.on('reset', (e,m) => restoreSaved({}))
         ipcRenderer.on('toolset', (e,m) => setToolset(m))
         ipcRenderer.on('signalData', (e,m) => sendSignalData(m))
+        ipcRenderer.on('saveWorkspace', (e,m) => saveState())
       } catch (e) { }
     }
 
@@ -135,19 +136,24 @@ return theta_af3</script>
       editor.focus();
     }
 
-    function addMarker() {
+    function createMarker() {
       let color = colors[colors.length - 1 - markers.length%colors.length];
       let name = 'marker ' + (markers.length+1)
       let start = viewInterval.interp(selection.start())
       let end = viewInterval.interp(selection.start() + selection.width())
+      let marker = addMarker(start, end, name, color)
+      updateSignals()
+      selection.clear()
+      marker.marker.querySelector('input').focus()
+      marker.marker.querySelector('input').select()
+    }
+
+    function addMarker(start, end, name, color) {
       var marker = Marker(el('markers'), start, end, name, color);
       el('markers').appendChild(marker.marker)
       marker.onremove = function() { removeMarker(marker) }
       markers.push(marker);
-      refreshSignals()
-      selection.clear()
-      marker.marker.querySelector('input').focus()
-      marker.marker.querySelector('input').select()
+      return marker
     }
 
     function removeMarker(marker) {
@@ -160,7 +166,6 @@ return theta_af3</script>
     function removeSignal(signal) {
       signal.remove();
       signals = signals.filter(function(s) { return s !== signal });
-      saveState()
     }
 
     function updateDataSync() {
@@ -187,7 +192,6 @@ return theta_af3</script>
     function updateSignals() {
       updateRanges()
       refreshSignals()
-      saveState();
     }
 
     function dataLoaded(cb) {
@@ -196,7 +200,6 @@ return theta_af3</script>
         dataInterval.syncPoint = dataInterval.start
         updateRanges()
         refreshSignals();
-        saveState()
         if (cb) cb()
       }
     }
@@ -259,7 +262,6 @@ return theta_af3</script>
       if (viewInterval)
         currentSignal.render(data, viewInterval.start, viewInterval.end);
       closeEditor();
-      saveState();
     }
 
     function closeEditor() {
@@ -273,7 +275,6 @@ return theta_af3</script>
       videoContainer.ondrop = (e) => {
         e.preventDefault()
         setVideo(e.dataTransfer.files[0].path)
-        saveState()
         return false
       }
 
@@ -368,7 +369,8 @@ return theta_af3</script>
         dataPath: dataPath,
         dataSync: dataInterval ? dataInterval.syncPoint : 0,
         viewInterval: viewInterval,
-        signals: signals.map(function(s) { return s.serialize() })
+        signals: signals.map((s) => s.serialize()),
+        markers: markers.map((m) => m.serialize())
       });
       if (ipcRenderer)
         ipcRenderer.send('workspace', workspace);
@@ -386,7 +388,14 @@ return theta_af3</script>
         if (dataInterval)
           dataInterval.syncPoint = saved.dataSync
 
-        updateRanges()
+        if (saved.markers) {
+          markers = []
+          el('markers').innerHTML = ''
+          saved.markers.forEach(function(m) {
+            addMarker(m.start, m.end, m.name, m.color);
+          })
+        }
+
         setToolset(saved.signals)
       }
     }

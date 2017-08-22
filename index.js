@@ -38,14 +38,14 @@ function createWindow () {
 // Some APIs can only be used after this event occurs.
 app.on('ready', function () {
   const menu = require('./main_menu').init();
-  menu.on('save_workspace', () => saveWorkspace(workspace));
+  menu.on('save_workspace', requestWorkspace);
   menu.on('open_workspace', () => openWorkspace(changeWorkspace));
   menu.on('new_workspace', () => resetWorkspace());
   menu.on('save_toolset', () => saveToolset(workspace.signals));
   menu.on('open_toolset', () => openToolset(changeToolset));
   menu.on('export_csv', () => requestExport());
 
-  ipcMain.on('workspace', (event, ws) => { workspace = JSON.parse(ws) })
+  ipcMain.on('workspace', (event, ws) => { saveWorkspace(JSON.parse(ws)) })
   ipcMain.on('signalData', (event, data) => { exportCSV(data) })
 
   createWindow()
@@ -60,6 +60,10 @@ function changeToolset(err, signals) {
   workspace = workspace || {};
   workspace.signals = signals
   mainWindow.webContents.send('toolset', signals)
+}
+
+function requestWorkspace() {
+  mainWindow.webContents.send('saveWorkspace')  
 }
 
 function requestExport() {

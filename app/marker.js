@@ -20,7 +20,13 @@ function Marker(view, start, end, name, color) {
     out.marker.setAttribute('style', style);
   })
 
+  out.marker.querySelector('.marker-name').addEventListener('change', function(e) {
+    out.name = e.target.value
+  })
 
+  out.serialize = function() {
+    return {color: out.color, name: out.name, start: out.start, end: out.end};
+  }
 
   out.reposition = function(viewInterval) {
     let left = lerp(0, view.offsetWidth, viewInterval.fraction(start))
