@@ -60,7 +60,7 @@ function Signal(color, name, parent) {
   out.generateScript = function generateScript(s) {
     var args = ['af3','af4','t7','t8','pz'].reduce(function(args,location) {
       return args.concat(['theta','alpha','low_beta','high_beta','gamma'].map(function(name) { return name+'_'+location }))
-    }, []).concat('lat','lon')
+    }, []).concat('lat','lon','altitude','climb_rate','gsr','skin_temp','heart_rate','rr_interval')
     eval('function _generated_(time,'+args.join(',')+') {'+s+'}')
     out.f = _generated_;
     out.script = s;
@@ -159,7 +159,7 @@ SignalContext.prototype = {
 Signal.testScript = function(script, data) {
   var args = ['af3','af4','t7','t8','pz'].reduce(function(args,location) {
     return args.concat(['theta','alpha','low_beta','high_beta','gamma'].map(function(name) { return name+'_'+location }))
-  }, [])
+  }, []).concat('lat','lon','altitude','climb_rate','gsr','skin_temp','heart_rate','rr_interval')
   eval('function _generated_(time,'+args.join(',')+') {'+script+'}')
   _generated_.apply(new SignalContext(), new Float64Array(26));
 }

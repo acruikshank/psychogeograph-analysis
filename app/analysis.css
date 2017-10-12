@@ -282,6 +282,7 @@ button:hover {
   color: rgb(26,25,27);
   width: calc(100% - 46px);
   left: 23px;
+  text-align: center;
 }
 
 .marker .color {
@@ -294,8 +295,29 @@ button:hover {
   opacity: 0;
   transition: opacity .2s linear;
 }
+.marker:hover {
+  opacity: 1;
+}
+
 .marker:hover .color {
   opacity: 1;
+}
+
+.marker-controls {
+  width: 100%;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 23px;
+}
+
+.marker:hover .marker-controls {
+  width: 12vw;
+  left: calc(50% - 6vw);
+}
+
+.marker:hover .marker-name {
+  color: #fff;
 }
 
 .marker .remove {

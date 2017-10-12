@@ -1,4 +1,4 @@
-function Map(el) {
+function RunMap(el) {
   let mapMarker;
   let map;
 

@@ -2,9 +2,11 @@ function Marker(view, start, end, name, color) {
   var out = {start: start, end: end, name: name, color: color}
 
   out.marker = genEl('div','marker',[
-    genEl('input', {'class':'marker-name', tabindex:'-1', value:out.name}),
-    genEl('button',{'class':'remove',tabindex:'-1'},'&#215;'),
-    genEl('input',{'class':'color', type: 'color', tabindex: '-1', value: out.color})
+    genEl('div', 'marker-controls', [
+      genEl('input', {'class':'marker-name', tabindex:'-1', value:out.name}),
+      genEl('button',{'class':'remove',tabindex:'-1'},'&#215;'),
+      genEl('input',{'class':'color', type: 'color', tabindex: '-1', value: out.color})
+    ])
   ])
 
   out.marker.querySelector('.marker-name').addEventListener('mousedown', function(e) { e.stopPropagation() })

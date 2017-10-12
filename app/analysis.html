@@ -15,7 +15,8 @@
  * Formulas can be any valid Javascript that returns a number at the end.
  * There are 25 variables formed from combinations of
  * [theta, alpha, low_beta, high_beta, gamma] and
- * [af3, af4, t7, t8, pz] e.g. alpha_af3 or high_beta_pz. */
+ * [af3, af4, t7, t8, pz] e.g. alpha_af3 or high_beta_pz.
+ * You may also use lat, lon, altitude', climb_rate, gsr, skin_temp, heart_rate, and rr_interval. */
 return theta_af3</script>
   </head>
   <body>
@@ -305,7 +306,7 @@ return theta_af3</script>
       dataPath = path
       data.fetchData(dataPath, dataLoaded(cb));
       el('data-container').setAttribute('class', dataPath ? '' : 'empty');
-      map = Map(document.querySelector('#map'))
+      map = RunMap(document.querySelector('#map'))
       if (videoInterval)
         timeupdate()
     }
@@ -378,6 +379,9 @@ return theta_af3</script>
 
     function restoreSaved(saved) {
       clearSignals();
+      markers = []
+      el('markers').innerHTML = ''
+      viewInterval = null
       setVideo(saved.videoPath);
       setData(saved.dataPath, dataSet);
 
@@ -389,7 +393,6 @@ return theta_af3</script>
           dataInterval.syncPoint = saved.dataSync
 
         if (saved.markers) {
-          markers = []
           el('markers').innerHTML = ''
           saved.markers.forEach(function(m) {
             addMarker(m.start, m.end, m.name, m.color);
