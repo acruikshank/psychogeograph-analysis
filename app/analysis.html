@@ -87,9 +87,6 @@ return theta_af3</script>
     </div>
   </body>
   <script>
-  /*
-  TODO:
-  */
     const LAT_SAMPLE = 26;
     const LON_SAMPLE = 27;
     let ipcRenderer;
@@ -125,6 +122,7 @@ return theta_af3</script>
         ipcRenderer.on('toolset', (e,m) => setToolset(m))
         ipcRenderer.on('signalData', (e,m) => sendSignalData(m))
         ipcRenderer.on('saveWorkspace', (e,m) => saveState())
+        ipcRenderer.on('saveToolset', (e,m) => saveToolset())
       } catch (e) { }
     }
 
@@ -375,6 +373,11 @@ return theta_af3</script>
       });
       if (ipcRenderer)
         ipcRenderer.send('workspace', workspace);
+    }
+
+    function saveToolset() {
+      if (ipcRenderer)
+        ipcRenderer.send('toolset', JSON.stringify(signals.map((s) => s.serialize())))
     }
 
     function restoreSaved(saved) {

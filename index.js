@@ -41,11 +41,12 @@ app.on('ready', function () {
   menu.on('save_workspace', requestWorkspace);
   menu.on('open_workspace', () => openWorkspace(changeWorkspace));
   menu.on('new_workspace', () => resetWorkspace());
-  menu.on('save_toolset', () => saveToolset(workspace.signals));
+  menu.on('save_toolset', () => requestToolset());
   menu.on('open_toolset', () => openToolset(changeToolset));
   menu.on('export_csv', () => requestExport());
 
   ipcMain.on('workspace', (event, ws) => { saveWorkspace(JSON.parse(ws)) })
+  ipcMain.on('toolset', (event, ws) => { saveToolset(JSON.parse(ws)) })
   ipcMain.on('signalData', (event, data) => { exportCSV(data) })
 
   createWindow()
@@ -64,6 +65,10 @@ function changeToolset(err, signals) {
 
 function requestWorkspace() {
   mainWindow.webContents.send('saveWorkspace')
+}
+
+function requestToolset() {
+  mainWindow.webContents.send('saveToolset')
 }
 
 function requestExport() {

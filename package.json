@@ -1,6 +1,6 @@
 {
   "name": "analysis",
-  "version": "1.1.0",
+  "version": "1.1.2",
   "description": "Anaylzer for mixed EEG and video data",
   "main": "index.js",
   "scripts": {
@@ -12,8 +12,8 @@
   "license": "ISC",
   "devDependencies": {
     "devtron": "^1.4.0",
-    "electron": "^1.4.1",
-    "electron-builder": "^8.7.0"
+    "electron": "^1.7.9",
+    "electron-builder": "^19.36.0"
   },
   "build": {
     "appId": "sivoh.PsygoAnalysis",
