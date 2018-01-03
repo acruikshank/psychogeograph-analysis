@@ -90,24 +90,27 @@ function Signal(color, name, parent) {
   }
 
   out.updateRanges = function(data, startRange, endRange) {
+    var ranges = out.reduce(data, startRange, endRange, function(ranges, sample) {
+      if (!ranges) return [sample, sample];
+      if (isNaN(sample)) return ranges;
+      return [Math.min(ranges[0],sample), Math.max(ranges[1],sample)];
+    })
+    minRange = ranges[0]
+    maxRange = ranges[1]
+  }
+
+  out.reduce = function(data, startRange, endRange, reducer, memo) {
     var start = startRange / 1000;
     var end = endRange / 1000;
-    maxRange = null;
-    minRange = null;
 
     var signalContext = new SignalContext();
     for (var i=0; i<cw; i++) {
       var time = lerp(start, end, i/cw);
       var sample = data.sampleAt(time);
       var result = out.f.apply(signalContext, sample);
-      if (i) {
-        maxRange = Math.max(maxRange, result);
-        minRange = Math.min(minRange, result);
-      } else {
-        maxRange = result;
-        minRante = result;
-      }
+      memo = reducer(memo, result, i);
     }
+    return memo;
   }
 
   out.serialize = function() {

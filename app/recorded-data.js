@@ -18,6 +18,8 @@ RecordedData = function() {
   }
 
   function uploadComplete(csv, cb) {
+    out.startTime = null;
+    out.endTime = null;
     for (var re = /(.*)\r?\n/gm, m, i=0; m = re.exec(csv); i++) {
       if (i>0) {
         var sample = new Float64Array(m[1].split(',').map(function(v) { return parseFloat(v) }));
