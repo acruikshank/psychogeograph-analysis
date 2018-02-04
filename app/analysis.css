@@ -226,15 +226,20 @@ button:hover {
   color: #fff;
 }
 
-#add-marker {
+#add-marker, #refine-range, #reset-range {
   display: none;
+  flex: 1;
   margin: 0;
-  padding: 0;
+  padding: 0 1em;
   width: 100%;
   text-align: left;
 }
 
-.selection #add-marker {
+.selection #add-marker, .selection #refine-range {
+  display: inline-block;
+}
+
+.custom-range #reset-range {
   display: inline-block;
 }
 

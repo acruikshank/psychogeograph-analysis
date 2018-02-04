@@ -65,6 +65,8 @@ return theta_af3</script>
             </div>
             <div class="control-row">
               <button id="add-marker">+ add marker</button>
+              <button id="refine-range">refine-range</button>
+              <button id="reset-range">reset-range</button>
             </div>
           </div>
         </div>
@@ -131,6 +133,8 @@ return theta_af3</script>
     el('video-sync').addEventListener('blur', updateVideoSync);
     el('add-signal').addEventListener('click', function() { editSignal() });
     el('add-marker').addEventListener('click', function() { createMarker() });
+    el('refine-range').addEventListener('click', function() { refineRange() });
+    el('reset-range').addEventListener('click', function() { resetRange() });
 
     function initIPC() {
       try {
@@ -148,7 +152,7 @@ return theta_af3</script>
       currentSignal = signal;
       editor.setValue(signal ? signal.script : el('default-script').innerHTML);
       editor.clearSelection();
-      document.body.setAttribute('class', 'editing');
+      addClass(document.body, 'editing');
       el('script-error').innerHTML = '';
       editor.focus();
     }
@@ -163,6 +167,24 @@ return theta_af3</script>
       selection.clear()
       marker.marker.querySelector('input').focus()
       marker.marker.querySelector('input').select()
+    }
+
+    function refineRange() {
+      let start = viewInterval.interp(selection.start())
+      let end = viewInterval.interp(selection.start() + selection.width())
+      selectionInterval = Interval(start, end);
+      viewMode = 'custom';
+      addClass(document.body, 'custom-range');
+      selection.clear()
+      updateSignals();
+    }
+
+    function resetRange() {
+      selectionInterval = null;
+      viewMode = 'intersection';
+      selection.clear()
+      removeClass(document.body, 'custom-range');
+      updateSignals();
     }
 
     function addMarker(start, end, name, color) {
@@ -232,7 +254,9 @@ return theta_af3</script>
         setTime('data-start', dataInterval.start, true)
         setTime('data-sync', dataInterval.syncPoint, true)
         setTime('data-end', dataInterval.end, true)
-        if (videoInterval) {
+        if (viewMode === 'custom') {
+          viewInterval = selectionInterval
+        } else if (videoInterval) {
           if (viewMode == 'intersection')
             viewInterval = dataInterval.intersection(videoInterval)
           else
@@ -283,7 +307,7 @@ return theta_af3</script>
     }
 
     function closeEditor() {
-      document.body.setAttribute('class','');
+      removeClass(document.body,'editing');
     }
 
     function initDragging() {
@@ -488,9 +512,10 @@ return theta_af3</script>
 
     function classes(el) { return el.getAttribute('class') ? el.getAttribute('class').split(/\s+/g) : [] }
     function removeClass(el, c) {
-      let cs = classes(el), i = c.indexOf(c)
+      let cs = classes(el), i = cs.indexOf(c)
+      if (!~i) return;
       cs.splice(i,1)
-      if (~i) el.setAttribute('class',cs.join(' '))
+      el.setAttribute('class',cs.join(' '))
     }
     function addClass(el,c) {
       removeClass(el,c)
