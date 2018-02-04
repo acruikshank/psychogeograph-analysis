@@ -114,6 +114,7 @@ return theta_af3</script>
     let data = RecordedData();
     let colors = initColors();
     var videoInterval, dataInterval, selectionInterval, viewInterval
+    let signalToMap;
     var viewMode = 'intersection';
     let signals = [];
     let markers = [];
@@ -231,6 +232,7 @@ return theta_af3</script>
     function updateSignals() {
       updateRanges()
       refreshSignals()
+      remapSignal()
     }
 
     function dataLoaded(cb) {
@@ -364,7 +366,15 @@ return theta_af3</script>
     }
 
     function mapSignal(signal) {
-      map.visualizeSignal(data, signal, viewInterval.start, viewInterval.end);
+      signalToMap = signal;
+      remapSignal()
+    }
+
+    function remapSignal() {
+      if (signalToMap) {
+        let interval = viewMode === 'custom' ? selectionInterval : viewInterval;
+        map.visualizeSignal(data, signalToMap, interval.start, interval.end);
+      }
     }
 
     function jumpToTime(fraction) {

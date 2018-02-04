@@ -1,4 +1,15 @@
 function RunMap(el) {
+  let redTransfer = new Uint8Array(256);
+  let greenTransfer = new Uint8Array(256);
+  let blueTransfer = new Uint8Array(256);
+  let gradientStops = [
+    {x: 0, r: 0, g: 107, b: 255},
+    {x: .24, r: 71, g: 176, b: 240},
+    {x: .47, r: 163, g: 187, b: 165},
+    {x: .77, r: 255, g: 172, b: 56},
+    {x: 1, r: 254, g: 73, b: 57}
+  ]
+
   let currentLocation = ol.proj.fromLonLat([-85.293, 35.047]);
   let map;
   let markerStyle = new ol.style.Style({
@@ -17,8 +28,8 @@ function RunMap(el) {
     document.getElementById('map').innerHTML = '';
 
     var imagery = new ol.layer.Tile({
-      source: new ol.source.Stamen({
-        layer: 'toner'
+      source: new ol.source.OSM({
+        url: 'http://{a-c}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'
       })
     });
 
@@ -34,6 +45,35 @@ function RunMap(el) {
       mapViz.forEach((feature) => event.vectorContext.drawFeature(feature, feature.getStyle()));
       event.vectorContext.drawFeature(feature, markerStyle);
     })
+
+    for (let i=0; i<256; i++) {
+      redTransfer[i] = 32 + parseInt(i/255 * 400);
+      greenTransfer[i] = 35 + parseInt(i/255 * 400);
+      blueTransfer[i] = 41 + parseInt(i/255 * 400);
+    }
+
+    imagery.on('postcompose', function(event) {
+
+      let context = event.context;
+      let canvas = context.canvas;
+      let width = canvas.width;
+      let height = canvas.height;
+
+      let inputData = context.getImageData(0, 0, width, height).data;
+
+      let output = context.createImageData(width, height);
+      let outputData = output.data;
+
+      let byteCount = width*height*4;
+      for (let i=0; i<byteCount; i++) {
+        outputData[i] = redTransfer[inputData[i++]];
+        outputData[i] = greenTransfer[inputData[i++]];
+        outputData[i] = blueTransfer[inputData[i++]];
+        outputData[i] = 255;
+      }
+
+      context.putImageData(output, 0, 0);
+    });
   }
 
   function bounds(data, startRange, endRange) {
@@ -107,12 +147,8 @@ function RunMap(el) {
   }
 
   function overUnderColor(x) {
-    return 'rgba('
-      + parseInt(Math.max(0,rerange(-1,1,-255,255,x)))
-      +',0,'
-      + parseInt(Math.max(0,rerange(1,-1,-255,255,x)))
-      +','
-      +rerange(0,1,.05,.1,Math.abs(x)) + ')'
+    var color = gradient(rescale(-1,1,0,1,x), gradientStops);
+    return 'rgba('+parseInt(color.r)+','+parseInt(color.g)+','+parseInt(color.b)+','+rerange(0,1,.05,.1,Math.abs(x)) + ')'
   }
 
   function rerange(a, b, c, d, x) {
@@ -120,27 +156,24 @@ function RunMap(el) {
     return c + prel*(d - c);
   }
 
-  function mapStyle() {
-    return [
-      {elementType: 'geometry', stylers: [{color: '#2d3036'}]},
-      {elementType: 'labels.text.stroke', stylers: [{color: '#1c2128'}]},
-      {elementType: 'labels.text.fill', stylers: [{color: '#746855'}]},
-      { featureType: 'administrative.locality', elementType: 'labels.text.fill', stylers: [{color: '#d59563'}] },
-      { featureType: 'poi', elementType: 'labels.text.fill', stylers: [{color: 'rgba(213, 149, 99, 0.51)'}] },
-      { featureType: 'poi.park', elementType: 'geometry', stylers: [{color: '#263c3f'}] },
-      { featureType: 'poi.park', elementType: 'labels.text.fill', stylers: [{color: '#6b9a76'}] },
-      { featureType: 'road', elementType: 'geometry', stylers: [{color: '#38414e'}] },
-      { featureType: 'road', elementType: 'geometry.stroke', stylers: [{color: '#212a37'}] },
-      { featureType: 'road', elementType: 'labels.text.fill', stylers: [{color: '#9ca5b3'}] },
-      { featureType: 'road.highway', elementType: 'geometry', stylers: [{color: '#746855'}] },
-      { featureType: 'road.highway', elementType: 'geometry.stroke', stylers: [{color: '#1f2835'}] },
-      { featureType: 'road.highway', elementType: 'labels.text.fill', stylers: [{color: 'rgba(244, 209, 156, 0.52)'}] },
-      { featureType: 'transit', elementType: 'geometry', stylers: [{color: '#2f3948'}] },
-      { featureType: 'transit.station', elementType: 'labels.text.fill', stylers: [{color: 'rgba(213, 149, 99, 0.5)'}] },
-      { featureType: 'water', elementType: 'geometry', stylers: [{color: '#17263c'}] },
-      { featureType: 'water', elementType: 'labels.text.fill', stylers: [{color: '#515c6d'}] },
-      { featureType: 'water', elementType: 'labels.text.stroke', stylers: [{color: '#17263c'}] }
-    ]
+  function gradient(x, stopPoints) {
+    let last = stopPoints[0];
+    let next = stopPoints[0];
+    for (let i=1; i<stopPoints.length && last.x < x; i++) {
+      last = next;
+      next = stopPoints[i];
+    }
+    if ((next.x < x) || (next.x == last.x))
+      return next;
+    return {
+      r: rescale(last.x, next.x, last.r, next.r, x),
+      g: rescale(last.x, next.x, last.g, next.g, x),
+      b: rescale(last.x, next.x, last.b, next.b, x)
+    }
+  }
+
+  function rescale(a,b,c,d,x) {
+    return c + (x - a) * (d - c) / (b - a);
   }
 
   return { update: update, visualizeSignal: visualizeSignal }
