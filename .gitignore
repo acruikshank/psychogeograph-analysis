@@ -4,3 +4,4 @@ build
 *.pgawkspc
 *.pgatools
 *.csv
+.DS_Store

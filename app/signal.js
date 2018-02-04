@@ -17,6 +17,7 @@ function Signal(color, name, parent) {
     canvas,
     genEl('input', {'class':'signal-name', tabindex:'-1', value:out.name}),
     genEl('div','signal-controls', [
+      genEl('button',{'class':'map',tabindex:'-1'},'map'),
       genEl('button',{'class':'edit',tabindex:'-1'},'edit'),
       genEl('button',{'class':'remove',tabindex:'-1'},'remove'),
       colorInput
@@ -35,8 +36,7 @@ function Signal(color, name, parent) {
   var cw = canvas.width = canvas.offsetWidth * 2;
   var ch = canvas.height = canvas.offsetHeight * 2;
   var ctx = canvas.getContext('2d');
-  var maxRange;
-  var minRange;
+  var ranges;
 
   out.resize = function() {
     cw = canvas.width = canvas.offsetWidth * 2;
@@ -80,7 +80,7 @@ function Signal(color, name, parent) {
       var time = lerp(start, end, i/cw);
       var sample = data.sampleAt(time);
       var result = out.f.apply(signalContext, sample);
-      dot(ctx, i, project(minRange,maxRange,ch,0,result), color);
+      dot(ctx, i, project(ranges.min,ranges.max,ch,0,result), color);
     }
   }
 
@@ -90,13 +90,29 @@ function Signal(color, name, parent) {
   }
 
   out.updateRanges = function(data, startRange, endRange) {
-    var ranges = out.reduce(data, startRange, endRange, function(ranges, sample) {
+    ranges = out.ranges(data, startRange, endRange)
+  }
+
+  out.ranges = function(data, startRange, endRange) {
+    return out.reduce(data, startRange, endRange, function(ranges, sample) {
       if (!ranges) return [sample, sample];
       if (isNaN(sample)) return ranges;
       return [Math.min(ranges[0],sample), Math.max(ranges[1],sample)];
     })
-    minRange = ranges[0]
-    maxRange = ranges[1]
+  }
+
+  out.statRanges = function(data, startRange, endRange) {
+    var mean = out.reduce(data, startRange, endRange, (m, s) => m+safe(s), 0) / cw;
+    var variance = out.reduce(data, startRange, endRange, (m, s) => m + safe(Math.pow(s-mean,2)), 0) / cw
+    var sigma = Math.sqrt(variance)
+    return {max: mean+2.5*sigma, min: mean-2.5*sigma, mean: mean, sigma: sigma};
+  }
+
+  out.map = function(data, startRange, endRange, mapper) {
+    return out.reduce(data, startRange, endRange, function(array, result, i, sample) {
+      array.push(mapper(result, i, sample));
+      return array;
+    }, []);
   }
 
   out.reduce = function(data, startRange, endRange, reducer, memo) {
@@ -108,7 +124,7 @@ function Signal(color, name, parent) {
       var time = lerp(start, end, i/cw);
       var sample = data.sampleAt(time);
       var result = out.f.apply(signalContext, sample);
-      memo = reducer(memo, result, i);
+      memo = reducer(memo, result, i, sample);
     }
     return memo;
   }
@@ -116,6 +132,8 @@ function Signal(color, name, parent) {
   out.serialize = function() {
     return {color: out.color, name: out.name, script: out.script};
   }
+
+  function safe(n) { return isNaN(n) ? 0 : n }
 
   function dot(ctx, x, y, color) {
     ctx.beginPath();
@@ -147,7 +165,9 @@ SignalContext.prototype = {
     if (!this.rolling)
       this.rolling = { samples: [], index: 0, average: 0 }
     var r = this.rolling;
-    r.average = (value + r.samples.length*r.average - (r.samples[r.index]||0)) / Math.min(r.samples.length + 1, samples);
+    var average = (value + r.samples.length*r.average - (r.samples[r.index]||0)) / Math.min(r.samples.length + 1, samples);
+    if (!isNaN(average))
+      r.average = average;
     r.samples[r.index] = value;
     r.index = (r.index+1) % samples;
     return r.average;

@@ -29,6 +29,7 @@ RecordedData = function() {
       }
     }
 
+    out.data = data
     out.samples = data.length;
 
     if (cb) cb();

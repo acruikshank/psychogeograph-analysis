@@ -21,9 +21,6 @@ function createWindow () {
     slashes: true
   }))
 
-  // Open the DevTools.
-  mainWindow.webContents.openDevTools()
-
   // Emitted when the window is closed.
   mainWindow.on('closed', function () {
     // Dereference the window object, usually you would store windows
@@ -44,6 +41,7 @@ app.on('ready', function () {
   menu.on('save_toolset', () => requestToolset());
   menu.on('open_toolset', () => openToolset(changeToolset));
   menu.on('export_csv', () => requestExport());
+  menu.on('open_console', () => mainWindow.webContents.openDevTools());
 
   ipcMain.on('workspace', (event, ws) => { saveWorkspace(JSON.parse(ws)) })
   ipcMain.on('toolset', (event, ws) => { saveToolset(JSON.parse(ws)) })

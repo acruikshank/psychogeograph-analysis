@@ -9,9 +9,8 @@
     <script src="selection.js"></script>
     <script src="marker.js"></script>
     <script src="ace-1.2.5/ace.js"></script>
-    <script async defer
-      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDSAn-W9P0AagulqroPA47vUZrJP-N04Wo">
-    </script>    <script id="default-script" type="text/html">/* Create signal processing formulas here.
+    <script src="ol/ol.js"></script>
+    <script id="default-script" type="text/html">/* Create signal processing formulas here.
  * Formulas can be any valid Javascript that returns a number at the end.
  * There are 25 variables formed from combinations of
  * [theta, alpha, low_beta, high_beta, gamma] and
@@ -59,6 +58,12 @@ return theta_af3</script>
               </div>
             </div>
             <div class="control-row">
+              <div class="field">
+                <label for="current-time-display">current time</label>
+                <input id="current-time-display" disabled="true"/>
+              </div>
+            </div>
+            <div class="control-row">
               <button id="add-marker">+ add marker</button>
             </div>
           </div>
@@ -87,6 +92,19 @@ return theta_af3</script>
     </div>
   </body>
   <script>
+ /*
+ * DONE - Change bounds to +/- 2.5 sigma.
+ * Figure out why heart rate and altitude don't render on map
+ * Filter out outliers and recompute averages?
+ * Prevent clicks on map button from repositioning cursor.
+ * Average together data points at same lat lon on map.
+ * Restyle map vis
+ * Add mean, +/- 1 and +/- 2 sigma lines on signal graphs.
+ * Add workspace name.
+ * Hide debug by default.
+ * Image export.
+ * Look into GPS accuracy.
+ */
     const LAT_SAMPLE = 26;
     const LON_SAMPLE = 27;
     let ipcRenderer;
@@ -222,6 +240,7 @@ return theta_af3</script>
         } else {
           viewInterval = dataInterval
         }
+        timeUpdate(viewInterval.start);
       }
     }
 
@@ -313,10 +332,15 @@ return theta_af3</script>
       if (!color) color = colors[signals.length%colors.length];
       name = name || ('signal ' + (signals.length+1))
       var signal = Signal(color, name, el('graphs'));
+      signal.addEventListener('map', function() { mapSignal(signal) })
       signal.addEventListener('edit', function() { editSignal(signal) })
       signal.addEventListener('remove', function() { removeSignal(signal); })
       signals.push(signal);
       return signal;
+    }
+
+    function mapSignal(signal) {
+      map.visualizeSignal(data, signal, viewInterval.start, viewInterval.end);
     }
 
     function jumpToTime(fraction) {
@@ -340,6 +364,7 @@ return theta_af3</script>
 
       var timeFraction = viewInterval.fraction(currentTime);
       el('current-time').style.left = lerp(0,el('graphs').offsetWidth,timeFraction);
+      el('current-time-display').value = formatFullTime(new Date(currentTime));
 
       sample = data.sampleAt(currentTime / 1000);
       let lat = sample[LAT_SAMPLE], lon = sample[LON_SAMPLE];

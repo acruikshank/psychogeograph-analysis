@@ -57,6 +57,17 @@ const template = [
         click: dispatch
       }
     ]
+  },
+  {
+    label: 'Developer',
+    submenu: [
+      {
+        role: 'open_console',
+        label: 'Open Console',
+        accelerator: 'CommandOrControl+Alt+I',
+        click: dispatch
+      }
+    ]
   }
 ]
 
