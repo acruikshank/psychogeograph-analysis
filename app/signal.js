@@ -44,8 +44,9 @@ function Signal(color, name, parent) {
   }
 
   out.addEventListener = function(type, f) {
-    signal.addEventListener('click', function(e) {
+    signal.addEventListener('mousedown', function(e) {
       if (e.target.getAttribute('class') === type) {
+        e.stopPropagation();
         e.preventDefault()
         f(e);
         return false;
@@ -95,10 +96,10 @@ function Signal(color, name, parent) {
 
   out.ranges = function(data, startRange, endRange) {
     return out.reduce(data, startRange, endRange, function(ranges, sample) {
-      if (!ranges) return [sample, sample];
+      if (!ranges) return {min:sample, max:sample};
       if (isNaN(sample)) return ranges;
-      return [Math.min(ranges[0],sample), Math.max(ranges[1],sample)];
-    })
+      return {min:Math.min(ranges.min,sample), max: Math.max(ranges.max,sample)};
+    }, {min:0, max:0})
   }
 
   out.statRanges = function(data, startRange, endRange) {

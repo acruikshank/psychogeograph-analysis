@@ -343,6 +343,7 @@ button:hover {
   margin-bottom: 1em;
   position: relative;
   overflow: hidden;
+  z-index: 2;
 }
 .signal:last-of-type {
   margin-bottom: 0;
