@@ -99,7 +99,7 @@ function Signal(color, name, parent) {
       if (!ranges) return {min:sample, max:sample};
       if (isNaN(sample)) return ranges;
       return {min:Math.min(ranges.min,sample), max: Math.max(ranges.max,sample)};
-    }, {min:0, max:0})
+    }, null)
   }
 
   out.statRanges = function(data, startRange, endRange) {

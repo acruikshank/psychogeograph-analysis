@@ -3,20 +3,24 @@ function RunMap(el) {
   let greenTransfer = new Uint8Array(256);
   let blueTransfer = new Uint8Array(256);
   let gradientStops = [
-    {x: 0, r: 0, g: 107, b: 255},
-    {x: .24, r: 71, g: 176, b: 240},
-    {x: .47, r: 163, g: 187, b: 165},
-    {x: .77, r: 255, g: 172, b: 56},
-    {x: 1, r: 254, g: 73, b: 57}
+    {x: 0, r: 0, g: 171, b: 249},
+    {x: .50, r: 190, g: 189, b: 195},
+    {x: 1, r: 254, g: 30, b: 255}
+    // {x: 0, r: 0, g: 107, b: 255},
+    // {x: .18, r: 43, g: 138, b: 190},
+    // {x: .50, r: 109, g: 130, b: 100},
+    // {x: .77, r: 202, g: 135, b: 43},
+    // {x: 1, r: 254, g: 73, b: 57}
   ]
+  for (var i=0; i< 20; i++) console.log(gradient(i/19, gradientStops))
 
   let currentLocation = ol.proj.fromLonLat([-85.293, 35.047]);
   let map;
   let markerStyle = new ol.style.Style({
     image: new ol.style.Circle({
-      radius: 7, snapToPixel: false,
-      fill: new ol.style.Fill({color: '#4c9de1'}),
-      stroke: new ol.style.Stroke({ color: 'white', width: 2 })
+      radius: 5, snapToPixel: false,
+      fill: new ol.style.Fill({color: 'rgba(76, 157, 224, 0.62)'}),
+      stroke: new ol.style.Stroke({ color: 'white', width: 1 })
     })
   });
   let mapViz = [];
@@ -29,7 +33,7 @@ function RunMap(el) {
 
     var imagery = new ol.layer.Tile({
       source: new ol.source.OSM({
-        url: 'http://{a-c}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'
+        url: 'https://api.mapbox.com/styles/v1/acruikshank/cjd9cm80m9ssn2rnvv3hjdpa0/tiles/256/{z}/{x}/{y}?access_token=pk.eyJ1IjoiYWNydWlrc2hhbmsiLCJhIjoiY2piYXp3endqMTBrMTJycWZzOXJyNW1ybSJ9.8qqV2o6iC-B8CAALQkKfzw'
       })
     });
 
@@ -45,35 +49,6 @@ function RunMap(el) {
       mapViz.forEach((feature) => event.vectorContext.drawFeature(feature, feature.getStyle()));
       event.vectorContext.drawFeature(feature, markerStyle);
     })
-
-    for (let i=0; i<256; i++) {
-      redTransfer[i] = 32 + parseInt(i/255 * 400);
-      greenTransfer[i] = 35 + parseInt(i/255 * 400);
-      blueTransfer[i] = 41 + parseInt(i/255 * 400);
-    }
-
-    imagery.on('postcompose', function(event) {
-
-      let context = event.context;
-      let canvas = context.canvas;
-      let width = canvas.width;
-      let height = canvas.height;
-
-      let inputData = context.getImageData(0, 0, width, height).data;
-
-      let output = context.createImageData(width, height);
-      let outputData = output.data;
-
-      let byteCount = width*height*4;
-      for (let i=0; i<byteCount; i++) {
-        outputData[i] = redTransfer[inputData[i++]];
-        outputData[i] = greenTransfer[inputData[i++]];
-        outputData[i] = blueTransfer[inputData[i++]];
-        outputData[i] = 255;
-      }
-
-      context.putImageData(output, 0, 0);
-    });
   }
 
   function bounds(data, startRange, endRange) {
@@ -115,21 +90,21 @@ function RunMap(el) {
         ol.proj.fromLonLat([boundsRect.lon.min, boundsRect.lat.min]),
         ol.proj.fromLonLat([boundsRect.lon.max, boundsRect.lat.max])
       ])
-      map.getView().fit(extent, map.getSize())
+      map.getView().fit(extent, {padding: [5, 5, 5, 5], constrainResolution: false})
 
-      var ranges = signal.statRanges(data, startRange, endRange);
-      var startIndex = data.indexAt(startRange / 1000);
-      var endIndex = data.indexAt(endRange / 1000);
+      let ranges = signal.ranges(data, startRange, endRange);
+      let startIndex = data.indexAt(startRange / 1000);
+      let endIndex = data.indexAt(endRange / 1000);
 
-      mapViz = signal.map(data, startRange, endRange, function(signal, i, sample) {
-        var currentPoint = new ol.geom.Point(ol.proj.fromLonLat([sample[LON_SAMPLE], sample[LAT_SAMPLE]]));
-        var overUnder = clamp(-1, 1, rerange(ranges.min, ranges.max, -1, 1, signal));
-        var feature = new ol.Feature(currentPoint);
+      mapViz = lerpSignalToSamples(signal, data, startRange, endRange).map(function(sample) {
+        let currentPoint = new ol.geom.Point(ol.proj.fromLonLat([sample.lon, sample.lat]));
+        let feature = new ol.Feature(currentPoint);
 
-        if (!isNaN(signal)) {
+        if (!isNaN(sample.value)) {
+          let overUnder = rerange(ranges.min, ranges.max, -1, 1, sample.value);
           feature.setStyle(new ol.style.Style({
             image: new ol.style.Circle({
-              radius: rerange(0,1,2,8,Math.pow(Math.abs(overUnder),2)),
+              radius: rerange(0,1,2,4,Math.pow(Math.abs(overUnder),4)),
               snapToPixel: false,
               fill: new ol.style.Fill({color: overUnderColor(overUnder)})
             })
@@ -138,8 +113,46 @@ function RunMap(el) {
 
         return feature
       });
+
       map.render();
     }
+  }
+
+  // reduce over signal, adding samples with same location to cohort, and then lerping positions of cohort
+  // from last location to next.
+  function lerpSignalToSamples(signal, data, startRange, endRange) {
+    let lerpState = signal.reduce(data, startRange, endRange, function(state, signal, i, sample) {
+      let position = [sample[LON_SAMPLE], sample[LAT_SAMPLE]];
+      state.cohort.push(signal);
+
+      if (!state.lastPosition)
+        state.lastPosition = position;
+
+      if (state.lastPosition && !positionEqual(position, state.lastPosition)) {
+        state.lerped = state.lerped.concat(state.cohort.map(function(signal, index) {
+          // position has change, lerp all points between last position and current one
+          return {
+            value: signal,
+            lon: rescale(0, state.cohort.length, state.lastPosition[0], position[0], index+1),
+            lat: rescale(0, state.cohort.length, state.lastPosition[1], position[1], index+1)
+          }
+        }))
+        state.cohort.length = 0;
+        state.lastPosition = position;
+      }
+      return state
+    }, {cohort: [], lerped: []});
+
+    // use last know position to map remaining points
+    let lastCohort = lerpState.cohort.map((s,i) => {return {value: s, lon: lerpState.lastPosition[0], lat: lerpState.lastPosition[1]}})
+
+    return lerpState.lerped.concat(lastCohort)
+  }
+
+  function distance(a,b) { return Math.sqrt(Math.pow(a[0]-b[0],2) + Math.pow(a[1]-b[1],2))}
+
+  function positionEqual(a, b) {
+    return Math.abs(a[0] - b[0]) < .0005 && Math.abs(a[1] - b[1]) < .0005
   }
 
   function clamp(min, max, x) {
@@ -148,7 +161,7 @@ function RunMap(el) {
 
   function overUnderColor(x) {
     var color = gradient(rescale(-1,1,0,1,x), gradientStops);
-    return 'rgba('+parseInt(color.r)+','+parseInt(color.g)+','+parseInt(color.b)+','+rerange(0,1,.05,.1,Math.abs(x)) + ')'
+    return 'rgba('+parseInt(color.r)+','+parseInt(color.g)+','+parseInt(color.b)+','+ rerange(0,1,.4,.6,Math.pow(x,4))+')' // rerange(0,1,.6,.8,Math.pow(x,4))
   }
 
   function rerange(a, b, c, d, x) {
@@ -159,7 +172,7 @@ function RunMap(el) {
   function gradient(x, stopPoints) {
     let last = stopPoints[0];
     let next = stopPoints[0];
-    for (let i=1; i<stopPoints.length && last.x < x; i++) {
+    for (let i=1; i<stopPoints.length && next.x < x; i++) {
       last = next;
       next = stopPoints[i];
     }
