@@ -12,7 +12,6 @@ function RunMap(el) {
     // {x: .77, r: 202, g: 135, b: 43},
     // {x: 1, r: 254, g: 73, b: 57}
   ]
-  for (var i=0; i< 20; i++) console.log(gradient(i/19, gradientStops))
 
   let currentLocation = ol.proj.fromLonLat([-85.293, 35.047]);
   let map;

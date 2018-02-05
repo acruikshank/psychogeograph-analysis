@@ -238,6 +238,7 @@ return theta_af3</script>
     function dataLoaded(cb) {
       return function() {
         dataInterval = Interval(data.startTime * 1000, data.endTime * 1000)
+        signalToMap = undefined
         dataInterval.syncPoint = dataInterval.start
         updateRanges()
         refreshSignals();
