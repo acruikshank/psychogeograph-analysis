@@ -4,7 +4,7 @@ const {app, BrowserWindow, Menu, ipcMain} = require('electron')
 
 const path = require('path')
 const url = require('url')
-const { saveWorkspace, openWorkspace, openToolset, saveToolset, exportCSV } = require('./storage');
+const { saveWorkspace, openWorkspace, openToolset, saveToolset, exportCSV, saveImageReport } = require('./storage');
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
@@ -42,9 +42,11 @@ app.on('ready', function () {
   menu.on('open_toolset', () => openToolset(changeToolset));
   menu.on('export_csv', () => requestExport());
   menu.on('open_console', () => mainWindow.webContents.openDevTools());
+  menu.on('image_report', () => requestImageReport());
 
   ipcMain.on('workspace', (event, ws) => { saveWorkspace(JSON.parse(ws)) })
   ipcMain.on('toolset', (event, ws) => { saveToolset(JSON.parse(ws)) })
+  ipcMain.on('imageReport', (event, url) => { saveImageReport(url) })
   ipcMain.on('signalData', (event, data) => { exportCSV(data) })
 
   createWindow()
@@ -71,6 +73,10 @@ function requestToolset() {
 
 function requestExport() {
   mainWindow.webContents.send('signalData')
+}
+
+function requestImageReport() {
+  mainWindow.webContents.send('imageReport')
 }
 
 function resetWorkspace() {

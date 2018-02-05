@@ -59,8 +59,14 @@ const template = [
     ]
   },
   {
-    label: 'Developer',
+    label: 'Tools',
     submenu: [
+      {
+        role: 'image_report',
+        label: 'Image Report',
+        accelerator: 'CommandOrControl+Alt+R',
+        click: dispatch
+      },
       {
         role: 'open_console',
         label: 'Open Console',

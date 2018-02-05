@@ -92,18 +92,13 @@ return theta_af3</script>
       </div>
       <div id="editor"></div>
     </div>
+    <div id="hidden-map"></div>
   </body>
   <script>
  /*
- * DONE - Change bounds to +/- 2.5 sigma.
  * Figure out why heart rate and altitude don't render on map
- * Filter out outliers and recompute averages?
- * Prevent clicks on map button from repositioning cursor.
- * Average together data points at same lat lon on map.
- * Restyle map vis
  * Add mean, +/- 1 and +/- 2 sigma lines on signal graphs.
  * Add workspace name.
- * Hide debug by default.
  * Image export.
  * Look into GPS accuracy.
  */
@@ -146,6 +141,7 @@ return theta_af3</script>
         ipcRenderer.on('signalData', (e,m) => sendSignalData(m))
         ipcRenderer.on('saveWorkspace', (e,m) => saveState())
         ipcRenderer.on('saveToolset', (e,m) => saveToolset())
+        ipcRenderer.on('imageReport', (e,m) => saveImageReport())
       } catch (e) { }
     }
 
@@ -438,6 +434,37 @@ return theta_af3</script>
     function saveToolset() {
       if (ipcRenderer)
         ipcRenderer.send('toolset', JSON.stringify(signals.map((s) => s.serialize())))
+    }
+
+    function saveImageReport() {
+      let canvas = document.createElement('canvas');
+      canvas.width = 600;
+      canvas.height = 400 * signals.length;
+
+      // run sequentially
+      signals.slice(0).reverse().reduce((cb, signal, i) => {
+        return () => { renderSignalMapToCanvas(canvas, signal, i*400, cb) } },
+        () => {
+          let dataURL = canvas.toDataURL("image/png");
+          if (ipcRenderer)
+            ipcRenderer.send('imageReport', dataURL)
+        })()
+    }
+
+    function renderSignalMapToCanvas(canvas, signal, offset, cb) {
+      console.log('rendering', signal.name)
+      let hiddenMap = document.getElementById('hidden-map');
+      hiddenMap.innerHTML = '';
+      let map = RunMap(hiddenMap, render);
+      let interval = viewMode === 'custom' ? selectionInterval : viewInterval;
+      map.visualizeSignal(data, signal, interval.start, interval.end);
+
+      function render() {
+        let ctx = canvas.getContext('2d')
+        let mapCanvas = hiddenMap.querySelector('canvas')
+        ctx.drawImage(mapCanvas, 0, offset, 600, 400);
+        cb();
+      }
     }
 
     function restoreSaved(saved) {

@@ -1,4 +1,4 @@
-function RunMap(el) {
+function RunMap(el, cb) {
   let redTransfer = new Uint8Array(256);
   let greenTransfer = new Uint8Array(256);
   let blueTransfer = new Uint8Array(256);
@@ -15,6 +15,7 @@ function RunMap(el) {
 
   let currentLocation = ol.proj.fromLonLat([-85.293, 35.047]);
   let map;
+  let initialTiles = 0;
   let markerStyle = new ol.style.Style({
     image: new ol.style.Circle({
       radius: 5, snapToPixel: false,
@@ -28,17 +29,16 @@ function RunMap(el) {
 
   function initMap() {
 
-    document.getElementById('map').innerHTML = '';
+    el.innerHTML = '';
 
-    var imagery = new ol.layer.Tile({
-      source: new ol.source.OSM({
-        url: 'https://api.mapbox.com/styles/v1/acruikshank/cjd9cm80m9ssn2rnvv3hjdpa0/tiles/256/{z}/{x}/{y}?access_token=pk.eyJ1IjoiYWNydWlrc2hhbmsiLCJhIjoiY2piYXp3endqMTBrMTJycWZzOXJyNW1ybSJ9.8qqV2o6iC-B8CAALQkKfzw'
-      })
-    });
+    let source = new ol.source.OSM({
+      url: 'https://api.mapbox.com/styles/v1/acruikshank/cjd9cm80m9ssn2rnvv3hjdpa0/tiles/256/{z}/{x}/{y}?access_token=pk.eyJ1IjoiYWNydWlrc2hhbmsiLCJhIjoiY2piYXp3endqMTBrMTJycWZzOXJyNW1ybSJ9.8qqV2o6iC-B8CAALQkKfzw'
+    })
+    let imagery = new ol.layer.Tile({ source: source });
 
     map = new ol.Map({
       layers: [imagery],
-      target: 'map',
+      target: el,
       view: new ol.View({center: currentLocation, zoom: 15})
     });
 
@@ -48,6 +48,16 @@ function RunMap(el) {
       mapViz.forEach((feature) => event.vectorContext.drawFeature(feature, feature.getStyle()));
       event.vectorContext.drawFeature(feature, markerStyle);
     })
+
+    if (cb) {
+      source.on('tileloadstart', () => { initialTiles++ })
+      source.on('tileloadend', () => {
+        initialTiles--;
+        if (initialTiles <= 0)
+          setTimeout(() => { cb(); cb=undefined}, 500);
+      })
+    }
+
   }
 
   function bounds(data, startRange, endRange) {

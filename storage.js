@@ -1,5 +1,5 @@
 const fs = require('fs')
-const { dialog } = require('electron')
+const { dialog, nativeImage } = require('electron')
 
 exports.saveWorkspace = function saveWorkspace(workspace) {
   dialog.showSaveDialog({
@@ -59,6 +59,23 @@ exports.openToolset = function openToolset(cb) {
     fs.readFile(filenames[0], 'utf8', function(err, file) {
       if (err) return cb(err);
       cb(null, JSON.parse(file))
+    });
+  }
+}
+
+exports.saveImageReport = function saveImageReport(dataURL) {
+  var img = nativeImage.createFromDataURL(dataURL).toPng();
+
+  dialog.showSaveDialog({
+    title: 'Save Image Report',
+    defaultPath: 'image_report.png'
+  }, writeImageReport);
+
+  function writeImageReport(filename) {
+    if (!filename) return;
+    if (!filename.match(/\.png$/)) filename += '.png';
+    fs.writeFile(filename, img, function(err) {
+      if (err) throw err;
     });
   }
 }

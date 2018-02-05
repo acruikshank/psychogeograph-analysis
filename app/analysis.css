@@ -384,3 +384,11 @@ button:hover {
     height: 2.2em;
     margin-right: 2em;
 }
+
+#hidden-map {
+  visibility: none;
+  position: absolute;
+  z-index: -1;
+  width: 600px;
+  height: 400px;
+}
