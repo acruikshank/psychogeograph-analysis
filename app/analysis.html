@@ -437,32 +437,86 @@ return theta_af3</script>
     }
 
     function saveImageReport() {
+      let textHeight = 36;
+      let mapHeight = 450;
+      let mapWidth = 600;
+      let separation = 40;
+      let signalHeight = 80;
+      let blockHeight = textHeight + mapHeight + signalHeight + separation;
       let canvas = document.createElement('canvas');
-      canvas.width = 600;
-      canvas.height = 400 * signals.length;
+      let interval = viewMode === 'custom' ? selectionInterval : viewInterval;
+      canvas.width = mapWidth;
+      canvas.height =  signals.length * blockHeight - separation;
+      let ctx = canvas.getContext('2d');
+      ctx.fillStyle = 'rgba(45, 48, 54, 1)';
+      ctx.fillRect(0,0,canvas.width, canvas.height);
 
       // run sequentially
       signals.slice(0).reverse().reduce((cb, signal, i) => {
-        return () => { renderSignalMapToCanvas(canvas, signal, i*400, cb) } },
+        let dims = {y: (signals.length-i-1)*blockHeight + textHeight, width: mapWidth, height: mapHeight };
+        return () => { renderSignalMapToCanvas(canvas, signal, interval, dims, cb) } },
         () => {
+          ctx.font = '36px Andale Mono, monospace';
+          signals.forEach((s, i) => {
+            ctx.globalAlpha = .75;
+            ctx.fillStyle = ctx.strokeStyle = '#b7bac7';
+            ctx.fillText(s.name, 8, i*blockHeight + textHeight - 4);
+            ctx.beginPath()
+            ctx.moveTo(0, i*blockHeight + textHeight + mapHeight)
+            ctx.lineTo(mapWidth, i*blockHeight + textHeight + mapHeight)
+            ctx.stroke();
+            s.render(data, interval.start, interval.end, {
+              canvas: canvas,
+              x: 0, y: i*blockHeight + textHeight + mapHeight,
+              cw: canvas.width,
+              ch: signalHeight,
+              ctx: canvas.getContext('2d'),
+              alpha: .2,
+              paintOver: true,
+              color: (x) => rgbToColor(gradient(x, [{x: 0, r: 0, g: 171, b: 249}, {x: .50, r: 190, g: 189, b: 195}, {x: 1, r: 254, g: 30, b: 255} ]))
+            })
+            ctx.clearRect(0,i*blockHeight + textHeight+mapHeight+signalHeight, mapWidth, separation);
+          })
           let dataURL = canvas.toDataURL("image/png");
           if (ipcRenderer)
             ipcRenderer.send('imageReport', dataURL)
         })()
     }
 
-    function renderSignalMapToCanvas(canvas, signal, offset, cb) {
+    function rgbToColor(rgb) { return 'rgb('+parseInt(rgb.r)+','+parseInt(rgb.g)+','+parseInt(rgb.b)+')' }
+
+    function gradient(x, stopPoints) {
+      let last = stopPoints[0];
+      let next = stopPoints[0];
+      for (let i=1; i<stopPoints.length && next.x < x; i++) {
+        last = next;
+        next = stopPoints[i];
+      }
+      if ((next.x < x) || (next.x == last.x))
+        return next;
+      return {
+        r: rescale(last.x, next.x, last.r, next.r, x),
+        g: rescale(last.x, next.x, last.g, next.g, x),
+        b: rescale(last.x, next.x, last.b, next.b, x)
+      }
+    }
+
+    function rescale(a,b,c,d,x) {
+      return c + (x - a) * (d - c) / (b - a);
+    }
+
+    function renderSignalMapToCanvas(canvas, signal, interval, dims, cb) {
       console.log('rendering', signal.name)
       let hiddenMap = document.getElementById('hidden-map');
       hiddenMap.innerHTML = '';
       let map = RunMap(hiddenMap, render);
-      let interval = viewMode === 'custom' ? selectionInterval : viewInterval;
+      map.config.showLocation = false;
       map.visualizeSignal(data, signal, interval.start, interval.end);
 
       function render() {
         let ctx = canvas.getContext('2d')
         let mapCanvas = hiddenMap.querySelector('canvas')
-        ctx.drawImage(mapCanvas, 0, offset, 600, 400);
+        ctx.drawImage(mapCanvas, 0, dims.y, dims.width, dims.height);
         cb();
       }
     }

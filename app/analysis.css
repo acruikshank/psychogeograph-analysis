@@ -386,7 +386,7 @@ button:hover {
 }
 
 #hidden-map {
-  visibility: none;
+  visibility: hidden;
   position: absolute;
   z-index: -1;
   width: 600px;

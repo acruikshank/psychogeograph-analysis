@@ -1,4 +1,5 @@
 function RunMap(el, cb) {
+  let config = { showLocation: true }
   let redTransfer = new Uint8Array(256);
   let greenTransfer = new Uint8Array(256);
   let blueTransfer = new Uint8Array(256);
@@ -43,10 +44,12 @@ function RunMap(el, cb) {
     });
 
     map.on('postcompose', function(event) {
-      var currentPoint = new ol.geom.Point(currentLocation);
-      var feature = new ol.Feature(currentPoint);
       mapViz.forEach((feature) => event.vectorContext.drawFeature(feature, feature.getStyle()));
-      event.vectorContext.drawFeature(feature, markerStyle);
+      if (config.showLocation) {
+        var currentPoint = new ol.geom.Point(currentLocation);
+        var feature = new ol.Feature(currentPoint);
+        event.vectorContext.drawFeature(feature, markerStyle);
+      }
     })
 
     if (cb) {
@@ -198,5 +201,5 @@ function RunMap(el, cb) {
     return c + (x - a) * (d - c) / (b - a);
   }
 
-  return { update: update, visualizeSignal: visualizeSignal }
+  return { update: update, visualizeSignal: visualizeSignal, config: config }
 }

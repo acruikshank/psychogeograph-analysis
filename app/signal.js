@@ -67,21 +67,27 @@ function Signal(color, name, parent) {
     out.script = s;
   }
 
-  out.render = function(data, startRange, endRange) {
+  out.render = function(data, startRange, endRange, opts) {
+    if (!opts)
+      opts = {canvas: canvas, x: 0, y: 0, cw: canvas.width, ch: canvas.height, ctx: canvas.getContext('2d'), alpha: .5 };
+    let ctx = opts.canvas.getContext('2d');
     out.updateRanges(data, startRange, endRange);
-    ctx.clearRect(0,0,cw,ch);
+    if (!opts.paintOver)
+      ctx.clearRect(opts.x, opts.y, opts.cw, opts.ch);
     var start = startRange / 1000;
     var end = endRange / 1000;
 
     ctx.fillStyle = out.color;
-    ctx.globalAlpha = .5;
+    ctx.globalAlpha = opts.alpha;
 
     var signalContext = new SignalContext();
     for (var i=0; i<cw; i++) {
       var time = lerp(start, end, i/cw);
       var sample = data.sampleAt(time);
       var result = out.f.apply(signalContext, sample);
-      dot(ctx, i, project(ranges.min,ranges.max,ch,0,result), color);
+      if (opts.color)
+        ctx.fillStyle = opts.color(project(ranges.min,ranges.max,0, 1,result));
+      dot(ctx, opts.x+(i*opts.cw/cw), project(ranges.min,ranges.max,opts.ch + opts.y, opts.y,result), color);
     }
   }
 
